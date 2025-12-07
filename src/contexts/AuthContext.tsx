@@ -149,6 +149,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', userId)
         .order('revealed_at', { ascending: false });
 
+      // Get library
+      const { data: library } = await supabase
+        .from('library')
+        .select('*')
+        .eq('user_id', userId)
+        .order('added_at', { ascending: false });
+
+      // Get to_read
+      const { data: toRead } = await supabase
+        .from('to_read')
+        .select('*')
+        .eq('user_id', userId)
+        .order('added_at', { ascending: false });
+
+      // Get liked_books
+      const { data: likedBooks } = await supabase
+        .from('liked_books')
+        .select('*')
+        .eq('user_id', userId)
+        .order('liked_at', { ascending: false });
+
+      // Get disliked_books
+      const { data: dislikedBooks } = await supabase
+        .from('disliked_books')
+        .select('*')
+        .eq('user_id', userId)
+        .order('disliked_at', { ascending: false });
+
       // Get user profile
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
@@ -175,10 +203,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: h.description || '',
             revealedAt: h.revealed_at
           })) || [],
-          library: [],
-          toRead: [],
-          likedBooks: [],
-          dislikedBooks: []
+          library: library?.map(l => ({
+            id: l.id,
+            isbn: l.isbn,
+            title: l.title,
+            author: l.author,
+            cover: l.cover || '',
+            pages: l.pages || 0,
+            status: l.status as 'to-read' | 'reading' | 'read',
+            currentPage: l.current_page,
+            rating: l.rating || undefined,
+            notes: l.notes || undefined,
+            addedAt: l.added_at
+          })) || [],
+          toRead: toRead?.map(t => ({
+            id: t.id,
+            isbn: t.isbn || undefined,
+            title: t.title,
+            author: t.author,
+            cover: t.cover || '',
+            description: '',
+            addedAt: t.added_at
+          })) || [],
+          likedBooks: likedBooks?.map(l => ({
+            id: l.id,
+            title: l.title,
+            author: l.author,
+            cover: l.cover || '',
+            description: '',
+            likedAt: l.liked_at
+          })) || [],
+          dislikedBooks: dislikedBooks?.map(d => ({
+            id: d.id,
+            title: d.title,
+            author: d.author,
+            cover: d.cover || '',
+            description: '',
+            dislikedAt: d.disliked_at
+          })) || []
         });
       }
     } catch (error) {
@@ -265,7 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   };
 
-  const addToLibrary = (book: LibraryBook) => {
+  const addToLibrary = async (book: LibraryBook) => {
     if (!user) return;
 
     const currentLibrary = user.library || [];
@@ -274,36 +336,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Book already in library');
     }
 
+    await supabase.from('library').insert({
+      user_id: user.id,
+      book_id: book.id,
+      isbn: book.isbn,
+      title: book.title,
+      author: book.author,
+      cover: book.cover,
+      pages: book.pages,
+      status: book.status,
+      current_page: book.currentPage,
+      rating: book.rating,
+      notes: book.notes
+    });
+
     const updatedLibrary = [book, ...currentLibrary];
     const updatedUser = { ...user, library: updatedLibrary };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, library: updatedLibrary } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const removeFromLibrary = (bookId: string) => {
+  const removeFromLibrary = async (bookId: string) => {
     if (!user) return;
+
+    await supabase
+      .from('library')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('id', bookId);
 
     const currentLibrary = user.library || [];
     const updatedLibrary = currentLibrary.filter(b => b.id !== bookId);
     const updatedUser = { ...user, library: updatedLibrary };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, library: updatedLibrary } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const updateLibraryBook = (bookId: string, updates: Partial<LibraryBook>) => {
+  const updateLibraryBook = async (bookId: string, updates: Partial<LibraryBook>) => {
     if (!user) return;
+
+    await supabase
+      .from('library')
+      .update({
+        status: updates.status,
+        current_page: updates.currentPage,
+        rating: updates.rating,
+        notes: updates.notes
+      })
+      .eq('user_id', user.id)
+      .eq('id', bookId);
 
     const currentLibrary = user.library || [];
     const updatedLibrary = currentLibrary.map(b => 
@@ -311,16 +390,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     const updatedUser = { ...user, library: updatedLibrary };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, library: updatedLibrary } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const addToToRead = (book: ToReadBook) => {
+  const addToToRead = async (book: ToReadBook) => {
     if (!user) return;
 
     const currentToRead = user.toRead || [];
@@ -329,35 +401,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Book already in To Read list');
     }
 
+    await supabase.from('to_read').insert({
+      user_id: user.id,
+      book_id: book.id,
+      title: book.title,
+      author: book.author,
+      cover: book.cover,
+      isbn: book.isbn
+    });
+
     const updatedToRead = [book, ...currentToRead];
     const updatedUser = { ...user, toRead: updatedToRead };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, toRead: updatedToRead } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const removeFromToRead = (bookId: string) => {
+  const removeFromToRead = async (bookId: string) => {
     if (!user) return;
+
+    await supabase
+      .from('to_read')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('book_id', bookId);
 
     const currentToRead = user.toRead || [];
     const updatedToRead = currentToRead.filter(b => b.id !== bookId);
     const updatedUser = { ...user, toRead: updatedToRead };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, toRead: updatedToRead } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const moveToReadFromToRead = (bookId: string) => {
+  const moveToReadFromToRead = async (bookId: string) => {
     if (!user) return;
 
     const currentToRead = user.toRead || [];
@@ -365,6 +438,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!book) return;
 
     // Remove from toRead
+    await supabase
+      .from('to_read')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('book_id', bookId);
+
     const updatedToRead = currentToRead.filter(b => b.id !== bookId);
     
     // Add to library as 'read'
@@ -375,57 +454,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addedAt: new Date().toISOString(),
       status: 'read'
     };
+
+    await supabase.from('library').insert({
+      user_id: user.id,
+      book_id: libraryBook.id,
+      isbn: libraryBook.isbn,
+      title: libraryBook.title,
+      author: libraryBook.author,
+      cover: libraryBook.cover,
+      status: 'read'
+    });
+
     const updatedLibrary = [libraryBook, ...currentLibrary];
 
     const updatedUser = { ...user, toRead: updatedToRead, library: updatedLibrary };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, toRead: updatedToRead, library: updatedLibrary } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
-  const likeBook = (book: LikedBook) => {
+  const likeBook = async (book: LikedBook) => {
     if (!user) return;
 
     const currentLiked = user.likedBooks || [];
     const exists = currentLiked.find(b => b.id === book.id);
     if (exists) return;
 
+    await supabase.from('liked_books').insert({
+      user_id: user.id,
+      book_id: book.id,
+      title: book.title,
+      author: book.author,
+      cover: book.cover
+    });
+
     const updatedLiked = [book, ...currentLiked];
     const updatedUser = { ...user, likedBooks: updatedLiked };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, likedBooks: updatedLiked } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
 
     console.log('📚 Book LIKED - AI will learn from this!', book.title);
   };
 
-  const dislikeBook = (book: DislikedBook) => {
+  const dislikeBook = async (book: DislikedBook) => {
     if (!user) return;
 
     const currentDisliked = user.dislikedBooks || [];
     const exists = currentDisliked.find(b => b.id === book.id);
     if (exists) return;
 
+    await supabase.from('disliked_books').insert({
+      user_id: user.id,
+      book_id: book.id,
+      title: book.title,
+      author: book.author,
+      cover: book.cover
+    });
+
     const updatedDisliked = [book, ...currentDisliked];
     const updatedUser = { ...user, dislikedBooks: updatedDisliked };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, dislikedBooks: updatedDisliked } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
 
     console.log('👎 Book DISLIKED - AI will avoid similar books!', book.title);
   };
