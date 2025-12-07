@@ -7,6 +7,7 @@ type ToReadRow = Database['public']['Tables']['to_read']['Row'];
 type LikedBooksRow = Database['public']['Tables']['liked_books']['Row'];
 type DislikedBooksRow = Database['public']['Tables']['disliked_books']['Row'];
 type BookHistoryRow = Database['public']['Tables']['book_history']['Row'];
+type UserPreferencesRow = Database['public']['Tables']['user_preferences']['Row'];
 
 interface User {
   id: string;
@@ -72,6 +73,7 @@ interface ToReadBook {
   aiReasoning?: string;
   aiFocusArea?: string;
   compatibilityScore?: number;
+  amazonLink?: string;
 }
 
 interface LikedBook {
@@ -149,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .single() as { data: UserPreferencesRow | null };
 
       // Get book history
       const { data: history } = await supabase
