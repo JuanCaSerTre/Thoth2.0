@@ -1,9 +1,18 @@
+import { generateAIRecommendations, type UserProfile } from '@/services/aiService';
+import type { RecommendedBook } from '@/components/BookRecommendationCard';
+
 interface Book {
   id: string;
   title: string;
   author: string;
   cover: string;
   description: string;
+  amazonLink?: string;
+  isbn?: string;
+  aiReasoning?: string;
+  aiFocusArea?: string;
+  categories?: string[];
+  compatibilityScore?: number;
 }
 
 interface BookByISBN extends Book {
@@ -19,80 +28,873 @@ interface LibraryBook {
   author: string;
 }
 
-const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes';
-const AMAZON_AFFILIATE_TAG = 'thoth-20'; // Replace with your actual Amazon affiliate tag
-
-export const fetchRandomBooks = async (preferences?: {
+interface UserPreferences {
   genres?: string[];
   language?: string;
-}, library?: LibraryBook[]): Promise<Book[]> => {
-  try {
-    const books: Book[] = [];
-    const fetchedIds = new Set<string>();
+  readingDuration?: string;
+  emotion?: string;
+  favoriteBooks?: string;
+}
 
-    // Fetch 3 different books
-    for (let i = 0; i < 3; i++) {
-      let query = 'subject:fiction';
-      
-      if (library && library.length > 0 && i === 0) {
-        const randomLibraryBook = library[Math.floor(Math.random() * library.length)];
-        const authorQuery = randomLibraryBook.author.split(' ').slice(-1)[0];
-        query = `inauthor:${authorQuery}`;
-      } else if (preferences?.genres && preferences.genres.length > 0) {
-        const randomGenre = preferences.genres[Math.floor(Math.random() * preferences.genres.length)];
-        query = `subject:${randomGenre}`;
+const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes';
+// Amazon Affiliate Tag - Change this to your own tag
+const AMAZON_AFFILIATE_TAG = import.meta.env.VITE_AMAZON_AFFILIATE_TAG || 'thoth02-22';
+
+// Cache to reduce API calls
+const bookCache = new Map<string, any>();
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
+// Emotion to genre/keyword mapping
+const EMOTION_KEYWORDS: Record<string, string[]> = {
+  'Inspiration': ['motivational', 'biography', 'success', 'leadership', 'self-improvement'],
+  'Relaxation': ['cozy', 'light', 'comfort', 'gentle', 'peaceful'],
+  'Adventure': ['adventure', 'travel', 'exploration', 'journey', 'quest'],
+  'Knowledge': ['science', 'history', 'philosophy', 'education', 'learning'],
+  'Escape': ['fantasy', 'science fiction', 'magical', 'alternate world'],
+  'Growth': ['self-help', 'personal development', 'psychology', 'mindfulness'],
+  'Entertainment': ['thriller', 'mystery', 'suspense', 'drama', 'humor']
+};
+
+// Extract keywords from favorite books
+const extractKeywords = (favoriteBooks?: string): string[] => {
+  if (!favoriteBooks) return [];
+  
+  const keywords: string[] = [];
+  const books = favoriteBooks.toLowerCase().split(/[,;]/);
+  
+  books.forEach(book => {
+    const words = book.trim().split(/\s+/);
+    keywords.push(...words.filter(w => w.length > 3));
+  });
+  
+  return keywords.slice(0, 5);
+};
+
+// Build intelligent search query
+const buildSearchQuery = (
+  preferences?: UserPreferences,
+  library?: LibraryBook[],
+  iteration: number = 0
+): string => {
+  const queries: string[] = [];
+  
+  // Strategy 1: Use emotion-based keywords
+  if (preferences?.emotion && EMOTION_KEYWORDS[preferences.emotion]) {
+    const emotionKeywords = EMOTION_KEYWORDS[preferences.emotion];
+    const keyword = emotionKeywords[iteration % emotionKeywords.length];
+    queries.push(`subject:${keyword}`);
+  }
+  
+  // Strategy 2: Use favorite books keywords
+  if (preferences?.favoriteBooks && iteration === 0) {
+    const keywords = extractKeywords(preferences.favoriteBooks);
+    if (keywords.length > 0) {
+      const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+      queries.push(`${keyword}`);
+    }
+  }
+  
+  // Strategy 3: Use preferred genres
+  if (preferences?.genres && preferences.genres.length > 0) {
+    const genre = preferences.genres[iteration % preferences.genres.length];
+    queries.push(`subject:${genre}`);
+  }
+  
+  // Strategy 4: Similar authors from library
+  if (library && library.length > 0 && iteration === 1) {
+    const randomBook = library[Math.floor(Math.random() * library.length)];
+    const authorLastName = randomBook.author.split(' ').slice(-1)[0];
+    queries.push(`inauthor:${authorLastName}`);
+  }
+  
+  // Default fallback
+  if (queries.length === 0) {
+    queries.push('subject:fiction');
+  }
+  
+  return queries.join('+');
+};
+
+// Filter out books already in library
+const isBookInLibrary = (bookId: string, isbn: string | undefined, library?: LibraryBook[]): boolean => {
+  if (!library || library.length === 0) return false;
+  
+  return library.some(libBook => 
+    libBook.isbn === isbn || 
+    libBook.id === bookId
+  );
+};
+
+// Score and rank books based on preferences and quality
+const scoreBook = (book: any, preferences?: UserPreferences, likedBooks?: any[], dislikedBooks?: any[]): number => {
+  // Start with a base score of 80 to make it easier to reach 70%+ compatibility
+  let score = 80;
+  const volumeInfo = book.volumeInfo;
+  const categories = volumeInfo.categories || [];
+  const bookTitle = volumeInfo.title?.toLowerCase() || '';
+  const bookDescription = volumeInfo.description?.toLowerCase() || '';
+  const bookAuthor = volumeInfo.authors?.[0]?.toLowerCase() || '';
+  
+  // Calculate learning weight based on interaction history
+  const totalInteractions = (likedBooks?.length || 0) + (dislikedBooks?.length || 0);
+  const learningWeight = Math.min(1, totalInteractions / 10); // 0 to 1, maxes at 10 interactions
+  
+  // ═══════════════════════════════════════════════════════════
+  // 1. APRENDIZAJE DE LIBROS GUSTADOS (MÁXIMA PRIORIDAD - 200 puntos max)
+  // Peso aumenta con más interacciones
+  // ═══════════════════════════════════════════════════════════
+  if (likedBooks && likedBooks.length > 0) {
+    const likedCategories = new Set(
+      likedBooks.flatMap((b: any) => b.categories || []).map((c: string) => c.toLowerCase())
+    );
+    const likedAuthors = new Set(
+      likedBooks.map((b: any) => b.author?.toLowerCase()).filter(Boolean)
+    );
+    
+    // BOOST FUERTE: Categorías que coinciden con libros gustados
+    // Aumenta con el aprendizaje
+    let categoryMatchCount = 0;
+    categories.forEach((cat: string) => {
+      const catLower = cat.toLowerCase();
+      if (likedCategories.has(catLower)) {
+        categoryMatchCount++;
+        score += 60 + (learningWeight * 40); // 60-100 puntos según aprendizaje
       }
-
-      const params = new URLSearchParams({
-        q: query,
-        maxResults: '40',
-        orderBy: 'relevance',
-        langRestrict: preferences?.language || 'en',
-        printType: 'books'
+      // También buscar coincidencias parciales
+      likedCategories.forEach(likedCat => {
+        if (catLower.includes(likedCat) || likedCat.includes(catLower)) {
+          score += 30 + (learningWeight * 20); // 30-50 puntos
+        }
       });
+    });
+    
+    // BOOST EXTRA: Si coincide con múltiples categorías gustadas
+    if (categoryMatchCount >= 2) {
+      score += 50 + (learningWeight * 50); // 50-100 puntos
+    }
+    
+    // BOOST FUERTE: Mismo autor que libro gustado
+    if (bookAuthor && likedAuthors.has(bookAuthor)) {
+      score += 100 + (learningWeight * 50); // 100-150 puntos - MUY alto por autor conocido
+    }
+    
+    // Buscar autores similares (mismo apellido)
+    likedAuthors.forEach(likedAuthor => {
+      const likedLastName = likedAuthor.split(' ').pop();
+      const bookLastName = bookAuthor.split(' ').pop();
+      if (likedLastName && bookLastName && likedLastName === bookLastName && likedAuthor !== bookAuthor) {
+        score += 40 + (learningWeight * 30); // 40-70 puntos
+      }
+    });
+    
+    console.log(`📊 Learning boost applied: ${Math.round(learningWeight * 100)}% (${likedBooks.length} liked books)`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // 2. EVITAR LIBROS NO GUSTADOS (PENALIZACIÓN FUERTE)
+  // Penalización aumenta con más interacciones
+  // ═══════════════════════════════════════════════════════════
+  if (dislikedBooks && dislikedBooks.length > 0) {
+    const dislikedCategories = new Set(
+      dislikedBooks.flatMap((b: any) => b.categories || []).map((c: string) => c.toLowerCase())
+    );
+    const dislikedAuthors = new Set(
+      dislikedBooks.map((b: any) => b.author?.toLowerCase()).filter(Boolean)
+    );
+    
+    // PENALIZACIÓN: Categorías de libros no gustados
+    // Aumenta con el aprendizaje
+    categories.forEach((cat: string) => {
+      if (dislikedCategories.has(cat.toLowerCase())) {
+        score -= 80 + (learningWeight * 70); // -80 a -150 puntos
+      }
+    });
+    
+    // PENALIZACIÓN CRÍTICA: Mismo autor que libro no gustado
+    if (bookAuthor && dislikedAuthors.has(bookAuthor)) {
+      score -= 150 + (learningWeight * 100); // -150 a -250 puntos
+    }
+    
+    console.log(`🚫 Avoidance penalty applied: ${Math.round(learningWeight * 100)}% (${dislikedBooks.length} disliked books)`);
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // 3. GÉNEROS PREFERIDOS DEL USUARIO (100 puntos max)
+  // ═══════════════════════════════════════════════════════════
+  if (preferences?.genres && preferences.genres.length > 0 && categories.length > 0) {
+    let genreMatchCount = 0;
+    categories.forEach((cat: string) => {
+      const catLower = cat.toLowerCase();
+      preferences.genres?.forEach(g => {
+        const genreLower = g.toLowerCase();
+        if (catLower.includes(genreLower) || genreLower.includes(catLower)) {
+          genreMatchCount++;
+          score += 40; // Boost por género preferido
+        }
+      });
+    });
+    
+    // Bonus si coincide con múltiples géneros preferidos
+    if (genreMatchCount >= 2) {
+      score += 30;
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // 4. CALIDAD DEL LIBRO (80 puntos max)
+  // ═══════════════════════════════════════════════════════════
+  
+  // Rating promedio (importante para calidad)
+  if (volumeInfo.averageRating) {
+    score += volumeInfo.averageRating * 12; // Max 60 puntos (5 estrellas)
+  }
+  
+  // Cantidad de ratings (popularidad y confiabilidad)
+  if (volumeInfo.ratingsCount) {
+    if (volumeInfo.ratingsCount > 1000) score += 25;
+    else if (volumeInfo.ratingsCount > 500) score += 18;
+    else if (volumeInfo.ratingsCount > 100) score += 10;
+  }
+  
+  // Descripción completa (señal de calidad)
+  if (volumeInfo.description) {
+    if (volumeInfo.description.length > 500) score += 15;
+    else if (volumeInfo.description.length > 200) score += 8;
+  }
+  
+  // Imagen de portada (presentación)
+  if (volumeInfo.imageLinks?.thumbnail) {
+    score += 10;
+  }
+  
+  // ═══════════════════════════════════════════════════════════
+  // 5. PREFERENCIAS ADICIONALES
+  // ═══════════════════════════════════════════════════════════
+  
+  // Duración de lectura preferida
+  if (preferences?.readingDuration && volumeInfo.pageCount) {
+    const pages = volumeInfo.pageCount;
+    if (preferences.readingDuration.includes('15') && pages < 200) score += 20;
+    if (preferences.readingDuration.includes('30') && pages >= 200 && pages < 350) score += 20;
+    if (preferences.readingDuration.includes('1 hour') && pages >= 350 && pages < 500) score += 20;
+    if (preferences.readingDuration.includes('More') && pages >= 500) score += 20;
+  }
+  
+  // Preferencia por libros recientes (leve)
+  if (volumeInfo.publishedDate) {
+    const year = parseInt(volumeInfo.publishedDate.split('-')[0]);
+    if (year >= 2020) score += 8;
+    else if (year >= 2015) score += 4;
+  }
+  
+  return score;
+};
 
-      const response = await fetch(`${GOOGLE_BOOKS_API}?${params}`);
+// Map book data to RecommendedBook interface
+const mapToBook = (book: any): RecommendedBook => {
+  const volumeInfo = book.volumeInfo;
+  const isbn = volumeInfo.industryIdentifiers?.find((id: any) => 
+    id.type === 'ISBN_13' || id.type === 'ISBN_10'
+  )?.identifier;
+
+  return {
+    id: book.id,
+    title: volumeInfo.title || 'Unknown Title',
+    author: volumeInfo.authors?.[0] || 'Unknown Author',
+    cover: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+           volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:') ||
+           'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
+    description: volumeInfo.description?.substring(0, 400) || 'No description available.',
+    amazonLink: isbn 
+      ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` 
+      : `https://www.amazon.com/s?k=${encodeURIComponent(volumeInfo.title + ' ' + volumeInfo.authors?.[0])}&tag=${AMAZON_AFFILIATE_TAG}`,
+    isbn,
+    categories: volumeInfo.categories || [],
+    pageCount: volumeInfo.pageCount,
+    publishedDate: volumeInfo.publishedDate,
+    averageRating: volumeInfo.averageRating
+  };
+};
+
+export async function getPersonalizedRecommendations(user: any): Promise<RecommendedBook[]> {
+  const recommendations: RecommendedBook[] = [];
+  
+  // Get disliked book IDs to filter them out
+  const dislikedBookIds = new Set(
+    (user.dislikedBooks || []).map((book: any) => book.id)
+  );
+  
+  // Get already revealed book IDs to avoid duplicates
+  const revealedBookIds = new Set(
+    (user.history || []).map((book: any) => book.id)
+  );
+
+  try {
+    console.log('=== STARTING PERSONALIZED RECOMMENDATIONS ===');
+    console.log('\n📊 USER PROFILE ANALYSIS:');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('  📚 Genres:', user.preferences?.genres?.join(', ') || 'None - IMPORTANT: Add genres for better matches!');
+    console.log('  🎯 Reading Goals:', user.preferences?.readingGoals?.join(', ') || 'None');
+    console.log('  👤 Reader Type:', user.preferences?.readerType || 'None');
+    console.log('  ✨ Story Vibes:', user.preferences?.storyVibes?.join(', ') || 'None');
+    console.log('  🌍 Language:', user.preferences?.language || 'en');
+    console.log('  🧠 Psychological Profile:', user.preferences?.psychologicalProfile ? Object.entries(user.preferences.psychologicalProfile).map(([k, v]) => `${k}:${v}`).join(', ') : 'None');
+    console.log('\n📖 READING DATA:');
+    console.log('  Library:', user.library?.length || 0, 'books');
+    console.log('  History:', user.history?.length || 0, 'books');
+    console.log('  To Read:', user.toRead?.length || 0, 'books');
+    console.log('\n🎯 LEARNING DATA (CRITICAL FOR PERSONALIZATION):');
+    console.log('  ✅ Liked books:', user.likedBooks?.length || 0);
+    if (user.likedBooks?.length > 0) {
+      console.log('     LIKED PATTERNS:');
+      const likedGenres = new Set<string>();
+      user.likedBooks.slice(0, 5).forEach((b: any) => {
+        console.log(`     - "${b.title}" by ${b.author}`);
+        if (b.categories) b.categories.forEach((c: string) => likedGenres.add(c));
+      });
+      if (likedGenres.size > 0) {
+        console.log(`     → Detected genres: ${Array.from(likedGenres).join(', ')}`);
+      }
+    }
+    console.log('  ❌ Disliked books:', user.dislikedBooks?.length || 0);
+    if (user.dislikedBooks?.length > 0) {
+      user.dislikedBooks.slice(0, 3).forEach((b: any) => {
+        console.log(`     - "${b.title}" by ${b.author} [AVOID: ${b.categories?.join(', ') || 'No categories'}]`);
+      });
+    }
+    console.log('═══════════════════════════════════════════════════════════');
+
+    // Extract genres from liked books if user has no genres configured
+    let effectiveGenres = user.preferences?.genres || [];
+    if (effectiveGenres.length === 0 && user.likedBooks?.length > 0) {
+      const likedGenresSet = new Set<string>();
+      user.likedBooks.forEach((b: any) => {
+        if (b.categories) b.categories.forEach((c: string) => likedGenresSet.add(c));
+      });
+      effectiveGenres = Array.from(likedGenresSet).slice(0, 5);
+      console.log('📊 Auto-detected genres from liked books:', effectiveGenres.join(', '));
+    }
+
+    // Build user profile for AI with ALL available data INCLUDING LIKES/DISLIKES
+    const userProfile: UserProfile = {
+      genres: effectiveGenres,
+      emotions: user.preferences?.emotions || (user.preferences?.emotion ? [user.preferences.emotion] : []),
+      themes: user.preferences?.themes || [],
+      storytellingStyles: user.preferences?.storytellingStyles || [],
+      favoriteBooks: user.preferences?.favoriteBooks || '',
+      language: user.preferences?.language || 'en',
+      readingDuration: user.preferences?.readingDuration || '',
+      discoveryMethod: user.preferences?.discoveryMethod || '',
+      endingPreference: user.preferences?.endingPreference || '',
+      nextBookGoal: user.preferences?.nextBookGoal || '',
+      // New onboarding fields
+      readingGoals: user.preferences?.readingGoals || [],
+      readerType: user.preferences?.readerType || '',
+      storyVibes: user.preferences?.storyVibes || [],
+      psychologicalProfile: user.preferences?.psychologicalProfile || {},
+      library: user.library || [],
+      readingHistory: user.history || [],
+      likedBooks: user.likedBooks || [],
+      dislikedBooks: user.dislikedBooks || []
+    };
+
+    // Build comprehensive exclusion sets FIRST
+    const libraryISBNs = new Set(
+      (user.library || []).map((book: any) => book.isbn).filter(Boolean)
+    );
+    
+    const toReadISBNs = new Set(
+      (user.toRead || []).map((book: any) => book.isbn).filter(Boolean)
+    );
+    
+    // Exclude books by title/author from library, history, toRead, AND likedBooks
+    const readBookTitles = new Set(
+      [...(user.library || []), ...(user.history || []), ...(user.toRead || []), ...(user.likedBooks || []), ...(user.dislikedBooks || [])]
+        .map((book: any) => book.title?.toLowerCase().trim())
+        .filter(Boolean)
+    );
+    
+    // Also exclude by book ID
+    const seenBookIds = new Set(
+      [...(user.library || []), ...(user.history || []), ...(user.toRead || []), ...(user.likedBooks || []), ...(user.dislikedBooks || [])]
+        .map((book: any) => book.id)
+        .filter(Boolean)
+    );
+    
+    const readBookAuthors = new Set<string>();
+    // Don't exclude by author - just by specific books
+
+    const dislikedAuthors = new Set(
+      (user.dislikedBooks || []).map((b: any) => b.author?.toLowerCase().trim()).filter(Boolean)
+    );
+
+    console.log('Exclusion - Library ISBNs:', Array.from(libraryISBNs));
+    console.log('Exclusion - ToRead ISBNs:', Array.from(toReadISBNs));
+    console.log('Exclusion - Titles:', Array.from(readBookTitles).slice(0, 5));
+    console.log('Exclusion - Book IDs:', Array.from(seenBookIds).slice(0, 5));
+    console.log('Exclusion - Disliked Authors:', Array.from(dislikedAuthors));
+
+    const allBooks: RecommendedBook[] = [];
+    const seenISBNs = new Set<string>();
+    const seenTitles = new Set<string>();
+
+    // Map language codes to Google Books API language codes
+    const languageMap: Record<string, string> = {
+      'en': 'en',
+      'es': 'es',
+      'fr': 'fr',
+      'de': 'de',
+      'it': 'it',
+      'pt': 'pt'
+    };
+
+    const langRestrict = languageMap[userProfile.language] || 'en';
+    console.log(`🌍 Using language restriction: ${langRestrict} (user preference: ${userProfile.language})`);
+    console.log(`📚 Will filter books to show only ${langRestrict === 'es' ? 'Spanish' : langRestrict === 'en' ? 'English' : langRestrict} books`);
+
+    // Get AI-powered recommendations
+    const aiRecommendations = await generateAIRecommendations(userProfile);
+    console.log('AI Recommendations:', JSON.stringify(aiRecommendations, null, 2));
+
+    // Fetch books for each AI recommendation
+    for (const aiRec of aiRecommendations) {
+      try {
+        console.log(`\n--- Fetching books for query: ${aiRec.searchQuery} ---`);
+        
+        const response = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+            aiRec.searchQuery
+          )}&maxResults=40&orderBy=relevance&langRestrict=${langRestrict}`
+        );
+
+        if (!response.ok) {
+          console.warn(`API request failed for query: ${aiRec.searchQuery}`);
+          continue;
+        }
+
+        const data = await response.json();
+        if (!data.items) {
+          console.warn(`No items found for query: ${aiRec.searchQuery}`);
+          continue;
+        }
+
+        console.log(`Found ${data.items.length} books for query: ${aiRec.searchQuery}`);
+
+        // Score and filter books
+        const scoredBooks = data.items
+          .map((item: any) => {
+            const isbn = item.volumeInfo.industryIdentifiers?.find(
+              (id: any) => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+            )?.identifier;
+            
+            const title = item.volumeInfo.title?.toLowerCase().trim();
+            const author = item.volumeInfo.authors?.[0]?.toLowerCase().trim();
+            const bookId = item.id;
+            const bookLanguage = item.volumeInfo.language;
+
+            // Skip if book language doesn't match user preference (when not English)
+            if (langRestrict !== 'en' && bookLanguage && bookLanguage !== langRestrict) {
+              console.log(`Skipping book "${item.volumeInfo.title}" - wrong language: ${bookLanguage} (expected: ${langRestrict})`);
+              return null;
+            }
+
+            // Skip disliked books and already seen books
+            if (dislikedBookIds.has(bookId) || revealedBookIds.has(bookId) || seenBookIds.has(bookId)) {
+              return null;
+            }
+
+            // Skip if already in library/history/toRead by ISBN or title
+            if (
+              (isbn && (libraryISBNs.has(isbn) || toReadISBNs.has(isbn) || seenISBNs.has(isbn))) ||
+              (title && (readBookTitles.has(title) || seenTitles.has(title)))
+            ) {
+              return null;
+            }
+
+            // Skip if author is from disliked books
+            if (author && dislikedAuthors.has(author)) {
+              return null;
+            }
+
+            // Use effective genres for scoring
+            const effectivePreferences = {
+              ...user.preferences,
+              genres: effectiveGenres
+            };
+            const score = scoreBook(item, effectivePreferences, user.likedBooks, user.dislikedBooks);
+            return {
+              ...item,
+              isbn,
+              title,
+              score,
+              aiReasoning: aiRec.reasoning,
+              aiFocusArea: aiRec.focusArea
+            };
+          })
+          .filter((book): book is any => book !== null)
+          .sort((a, b) => b.score - a.score);
+
+        console.log(`After filtering: ${scoredBooks.length} unique books`);
+
+        // Take top book from this AI recommendation
+        if (scoredBooks.length > 0) {
+          const topBook = scoredBooks[0];
+          if (topBook.isbn) seenISBNs.add(topBook.isbn);
+          if (topBook.title) seenTitles.add(topBook.title);
+          
+          const mappedBook = mapToBook(topBook);
+          mappedBook.aiReasoning = aiRec.reasoning;
+          mappedBook.aiFocusArea = aiRec.focusArea;
+          
+          // Calculate compatibility score based on actual score
+          // Score ranges: 50 base + up to 400 from matches
+          const rawScore = Math.max(0, topBook.score);
+          
+          // More generous scoring to reach 80%+
+          let compatibilityScore: number;
+          if (rawScore >= 200) {
+            compatibilityScore = 95 + Math.min(4, Math.floor((rawScore - 200) / 50)); // 95-99%
+          } else if (rawScore >= 150) {
+            compatibilityScore = 88 + Math.floor((rawScore - 150) / 7); // 88-94%
+          } else if (rawScore >= 100) {
+            compatibilityScore = 80 + Math.floor((rawScore - 100) / 6); // 80-87%
+          } else if (rawScore >= 70) {
+            compatibilityScore = 70 + Math.floor((rawScore - 70) / 3); // 70-79%
+          } else if (rawScore >= 50) {
+            compatibilityScore = 60 + Math.floor((rawScore - 50) / 2); // 60-69%
+          } else {
+            compatibilityScore = 50 + Math.floor(rawScore / 5); // 50-59%
+          }
+          
+          mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
+          
+          // Add books with 70% or higher compatibility
+          if (mappedBook.compatibilityScore >= 70) {
+            allBooks.push(mappedBook);
+            console.log(`✓ Added book: "${mappedBook.title}" by ${mappedBook.author} (Score: ${topBook.score}, Compatibility: ${mappedBook.compatibilityScore}%)`);
+          } else {
+            console.log(`✗ Skipped book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching AI recommendation:', error);
+      }
+    }
+
+    console.log(`\n=== Total books found: ${allBooks.length} ===`);
+
+    // If we don't have 3 books, try to get more AI recommendations
+    if (allBooks.length < 3) {
+      console.log(`⚠️ Only ${allBooks.length} books found. Need ${3 - allBooks.length} more.`);
+      console.log('Requesting additional AI recommendations...');
       
-      if (!response.ok) continue;
+      // Try to get more recommendations from AI
+      const additionalRecs = await generateAIRecommendations(userProfile);
+      
+      for (const aiRec of additionalRecs) {
+        if (allBooks.length >= 3) break;
+        
+        try {
+          const searchResults = await searchGoogleBooks(aiRec.searchQuery, userProfile.language);
+          
+          if (searchResults.length > 0) {
+            const effectivePreferences = {
+              ...user.preferences,
+              genres: effectiveGenres
+            };
+            const scoredBooks = searchResults.map((book: any) => ({
+              ...book,
+              score: scoreBook(book, effectivePreferences, user.likedBooks, user.dislikedBooks)
+            }));
+            
+            scoredBooks.sort((a, b) => b.score - a.score);
+            
+            for (const topBook of scoredBooks.slice(0, 2)) {
+              if (allBooks.length >= 3) break;
+              
+              const bookISBN = topBook.volumeInfo.industryIdentifiers?.[0]?.identifier;
+              const bookTitle = topBook.volumeInfo.title?.toLowerCase().trim();
+              
+              if (
+                (!bookISBN || !seenISBNs.has(bookISBN)) &&
+                (!bookTitle || !seenTitles.has(bookTitle))
+              ) {
+                if (bookISBN) seenISBNs.add(bookISBN);
+                if (bookTitle) seenTitles.add(bookTitle);
+                
+                const mappedBook = mapToBook(topBook);
+                mappedBook.aiReasoning = aiRec.reasoning;
+                mappedBook.aiFocusArea = aiRec.focusArea;
+                
+                const rawScore = Math.max(0, topBook.score);
+                let compatibilityScore: number;
+                if (rawScore >= 200) {
+                  compatibilityScore = 95 + Math.min(4, Math.floor((rawScore - 200) / 50));
+                } else if (rawScore >= 150) {
+                  compatibilityScore = 88 + Math.floor((rawScore - 150) / 7);
+                } else if (rawScore >= 100) {
+                  compatibilityScore = 80 + Math.floor((rawScore - 100) / 6);
+                } else if (rawScore >= 70) {
+                  compatibilityScore = 70 + Math.floor((rawScore - 70) / 3);
+                } else if (rawScore >= 50) {
+                  compatibilityScore = 60 + Math.floor((rawScore - 50) / 2);
+                } else {
+                  compatibilityScore = 50 + Math.floor(rawScore / 5);
+                }
+                
+                mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
+                
+                // Add books with 70% or higher compatibility
+                if (mappedBook.compatibilityScore >= 70) {
+                  allBooks.push(mappedBook);
+                  console.log(`✓ Added additional book: "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+                } else {
+                  console.log(`✗ Skipped additional book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching additional recommendation:', error);
+        }
+      }
+    }
 
-      const data = await response.json();
+    // If still don't have 3 books, try with lower threshold but still show compatibility
+    if (allBooks.length < 3) {
+      console.log(`⚠️ Only ${allBooks.length} books with 80%+. Trying to find more quality matches...`);
+      
+      // Try one more round with genre-specific searches (language-aware)
+      const isSpanish = userProfile.language === 'es';
+      const defaultGenres = isSpanish 
+        ? ['novela', 'literatura', 'ficción'] 
+        : ['fiction', 'novel', 'literature'];
+      
+      const genreSearches = (user.preferences?.genres || defaultGenres).slice(0, 3).map((genre: string) => ({
+        searchQuery: isSpanish 
+          ? `subject:${genre.toLowerCase()} español OR novela` 
+          : `subject:${genre.toLowerCase()} bestseller`,
+        reasoning: `Bestseller en ${genre} para ti`,
+        focusArea: 'Género preferido'
+      }));
+      
+      // Add Spanish-specific searches if language is Spanish
+      if (isSpanish && genreSearches.length < 3) {
+        genreSearches.push({
+          searchQuery: 'inauthor:Gabriel García Márquez OR inauthor:Isabel Allende',
+          reasoning: 'Autores clásicos en español',
+          focusArea: 'Literatura hispana'
+        });
+      }
+      
+      for (const search of genreSearches) {
+        if (allBooks.length >= 3) break;
+        
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+              search.searchQuery
+            )}&maxResults=20&orderBy=relevance&langRestrict=${langRestrict}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.items) {
+              const scoredBooks = data.items
+                .map((item: any) => {
+                  const isbn = item.volumeInfo.industryIdentifiers?.find(
+                    (id: any) => id.type === 'ISBN_13' || id.type === 'ISBN_10'
+                  )?.identifier;
+                  const title = item.volumeInfo.title?.toLowerCase().trim();
+                  const bookLanguage = item.volumeInfo.language;
+                  const bookId = item.id;
+                  
+                  // Skip if book language doesn't match user preference
+                  if (langRestrict !== 'en' && bookLanguage && bookLanguage !== langRestrict) {
+                    return null;
+                  }
+                  
+                  // Skip if already seen by ID, ISBN, or title
+                  if (
+                    seenBookIds.has(bookId) ||
+                    (isbn && seenISBNs.has(isbn)) ||
+                    (title && seenTitles.has(title))
+                  ) {
+                    return null;
+                  }
+                  
+                  return {
+                    ...item,
+                    isbn,
+                    title,
+                    score: scoreBook(item, { ...user.preferences, genres: effectiveGenres }, user.likedBooks, user.dislikedBooks)
+                  };
+                })
+                .filter((book): book is any => book !== null)
+                .sort((a, b) => b.score - a.score);
+              
+              for (const topBook of scoredBooks.slice(0, 2)) {
+                if (allBooks.length >= 3) break;
+                
+                if (topBook.isbn) seenISBNs.add(topBook.isbn);
+                if (topBook.title) seenTitles.add(topBook.title);
+                
+                const mappedBook = mapToBook(topBook);
+                mappedBook.aiReasoning = search.reasoning;
+                mappedBook.aiFocusArea = search.focusArea;
+                
+                const rawScore = Math.max(0, topBook.score);
+                let compatibilityScore: number;
+                if (rawScore >= 200) {
+                  compatibilityScore = 95 + Math.min(4, Math.floor((rawScore - 200) / 50));
+                } else if (rawScore >= 150) {
+                  compatibilityScore = 88 + Math.floor((rawScore - 150) / 7);
+                } else if (rawScore >= 100) {
+                  compatibilityScore = 80 + Math.floor((rawScore - 100) / 6);
+                } else if (rawScore >= 70) {
+                  compatibilityScore = 70 + Math.floor((rawScore - 70) / 3);
+                } else if (rawScore >= 50) {
+                  compatibilityScore = 60 + Math.floor((rawScore - 50) / 2);
+                } else {
+                  compatibilityScore = 50 + Math.floor(rawScore / 5);
+                }
+                
+                mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
+                
+                // Accept books with 60%+ in this fallback round
+                if (mappedBook.compatibilityScore >= 60) {
+                  allBooks.push(mappedBook);
+                  console.log(`✓ Added fallback book: "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error in fallback search:', error);
+        }
+      }
+    }
+
+    // Final message
+    if (allBooks.length === 0) {
+      console.log('⚠️ No books found matching your profile. Try adjusting your preferences.');
+    } else if (allBooks.length < 3) {
+      console.log(`ℹ️ Found ${allBooks.length} quality matches for your profile.`);
+    }
+
+    console.log('=== FINAL RECOMMENDATIONS ===');
+    allBooks.forEach((b, i) => {
+      console.log(`\n${i + 1}. "${b.title}" by ${b.author}`);
+      console.log(`   📊 Compatibility: ${b.compatibilityScore}%`);
+      console.log(`   💡 Reason: ${b.aiReasoning}`);
+      console.log(`   🎯 Focus: ${b.aiFocusArea}`);
+      console.log(`   📚 Categories: ${b.categories?.join(', ') || 'N/A'}`);
+    });
+
+    // Return only books with 80%+ compatibility
+    return allBooks.slice(0, 3);
+  } catch (error) {
+    console.error('AI recommendation error, using fallback:', error);
+    return fetchRandomBooks(user.preferences, user.library);
+  }
+}
+
+export const fetchRandomBooks = async (
+  preferences?: UserPreferences,
+  library?: LibraryBook[]
+): Promise<RecommendedBook[]> => {
+  try {
+    const books: RecommendedBook[] = [];
+    const fetchedIds = new Set<string>();
+    const libraryISBNs = new Set(library?.map(b => b.isbn) || []);
+    
+    // Try to fetch 3 diverse books using different strategies
+    for (let i = 0; i < 3; i++) {
+      const query = buildSearchQuery(preferences, library, i);
+      const cacheKey = `${query}-${preferences?.language || 'en'}-${i}`;
+      
+      // Check cache first
+      let data;
+      const cached = bookCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        data = cached.data;
+      } else {
+        const params = new URLSearchParams({
+          q: query,
+          maxResults: '40',
+          orderBy: 'relevance',
+          langRestrict: preferences?.language || 'en',
+          printType: 'books'
+        });
+
+        const response = await fetch(`${GOOGLE_BOOKS_API}?${params}`);
+        
+        if (!response.ok) {
+          console.error(`API request failed for query: ${query}`);
+          continue;
+        }
+
+        data = await response.json();
+        
+        // Cache the result
+        bookCache.set(cacheKey, { data, timestamp: Date.now() });
+      }
       
       if (!data.items || data.items.length === 0) continue;
 
-      // Find a unique book
-      let attempts = 0;
-      let bookData;
-      do {
-        const randomIndex = Math.floor(Math.random() * data.items.length);
-        bookData = data.items[randomIndex];
-        attempts++;
-      } while (fetchedIds.has(bookData.id) && attempts < 10);
+      // Score and sort books
+      const scoredBooks = data.items
+        .map((item: any) => ({
+          item,
+          score: scoreBook(item, preferences)
+        }))
+        .sort((a: any, b: any) => b.score - a.score);
 
-      if (fetchedIds.has(bookData.id)) continue;
+      // Find a unique, high-quality book not in library
+      let bookData;
+      for (const { item } of scoredBooks) {
+        const isbn = item.volumeInfo.industryIdentifiers?.find((id: any) => 
+          id.type === 'ISBN_13' || id.type === 'ISBN_10'
+        )?.identifier;
+        
+        if (!fetchedIds.has(item.id) && !libraryISBNs.has(isbn)) {
+          bookData = item;
+          break;
+        }
+      }
+
+      if (!bookData) continue;
 
       fetchedIds.add(bookData.id);
-      const book = bookData.volumeInfo;
-      const isbn = book.industryIdentifiers?.find((id: any) => 
+      const volumeInfo = bookData.volumeInfo;
+      const isbn = volumeInfo.industryIdentifiers?.find((id: any) => 
         id.type === 'ISBN_13' || id.type === 'ISBN_10'
       )?.identifier;
 
       books.push({
         id: bookData.id,
-        title: book.title || 'Unknown Title',
-        author: book.authors?.[0] || 'Unknown Author',
-        cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+        title: volumeInfo.title || 'Unknown Title',
+        author: volumeInfo.authors?.[0] || 'Unknown Author',
+        cover: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+               volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:') ||
                'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
-        description: book.description || 'No description available.',
-        amazonLink: isbn ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` : undefined
+        description: volumeInfo.description?.substring(0, 300) + '...' || 'No description available.',
+        amazonLink: isbn 
+          ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` 
+          : `https://www.amazon.com/s?k=${encodeURIComponent(volumeInfo.title + ' ' + volumeInfo.authors?.[0])}&tag=${AMAZON_AFFILIATE_TAG}`,
+        compatibilityScore: Math.floor(Math.random() * 25) + 55 // 55-80% for random books
       });
     }
 
-    // If we couldn't get 3 books, fill with generic ones
+    // If we couldn't get 3 books, fill with fallback
     while (books.length < 3) {
-      const fallbackBook = await fetchRandomBook(preferences, library);
-      if (!fetchedIds.has(fallbackBook.id)) {
+      const fallbackBook = await fetchFallbackBook(preferences, library, fetchedIds, libraryISBNs);
+      if (fallbackBook && !fetchedIds.has(fallbackBook.id)) {
+        fallbackBook.compatibilityScore = Math.floor(Math.random() * 20) + 50; // 50-70% for fallback
         books.push(fallbackBook);
         fetchedIds.add(fallbackBook.id);
+      } else {
+        break;
       }
     }
 
@@ -103,21 +905,17 @@ export const fetchRandomBooks = async (preferences?: {
   }
 };
 
-export const fetchRandomBook = async (preferences?: {
-  genres?: string[];
-  language?: string;
-}, library?: LibraryBook[]): Promise<Book> => {
+const fetchFallbackBook = async (
+  preferences?: UserPreferences,
+  library?: LibraryBook[],
+  excludeIds?: Set<string>,
+  excludeISBNs?: Set<string>
+): Promise<Book | null> => {
   try {
-    let query = 'subject:fiction';
+    const query = preferences?.genres?.[0] 
+      ? `subject:${preferences.genres[0]}` 
+      : 'subject:bestseller';
     
-    if (library && library.length > 0) {
-      const randomLibraryBook = library[Math.floor(Math.random() * library.length)];
-      const authorQuery = randomLibraryBook.author.split(' ').slice(-1)[0];
-      query = `inauthor:${authorQuery}`;
-    } else if (preferences?.genres && preferences.genres.length > 0) {
-      query = `subject:${preferences.genres[0]}`;
-    }
-
     const params = new URLSearchParams({
       q: query,
       maxResults: '40',
@@ -128,40 +926,60 @@ export const fetchRandomBook = async (preferences?: {
 
     const response = await fetch(`${GOOGLE_BOOKS_API}?${params}`);
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch books');
-    }
+    if (!response.ok) return null;
 
     const data = await response.json();
     
-    if (!data.items || data.items.length === 0) {
-      throw new Error('No books found');
+    if (!data.items || data.items.length === 0) return null;
+
+    for (const item of data.items) {
+      const isbn = item.volumeInfo.industryIdentifiers?.find((id: any) => 
+        id.type === 'ISBN_13' || id.type === 'ISBN_10'
+      )?.identifier;
+      
+      if (excludeIds?.has(item.id) || excludeISBNs?.has(isbn)) continue;
+
+      const volumeInfo = item.volumeInfo;
+      return {
+        id: item.id,
+        title: volumeInfo.title || 'Unknown Title',
+        author: volumeInfo.authors?.[0] || 'Unknown Author',
+        cover: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+               'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
+        description: volumeInfo.description?.substring(0, 300) + '...' || 'No description available.',
+        amazonLink: isbn 
+          ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` 
+          : `https://www.amazon.com/s?k=${encodeURIComponent(volumeInfo.title + ' ' + volumeInfo.authors?.[0])}&tag=${AMAZON_AFFILIATE_TAG}`
+      };
     }
 
-    const randomIndex = Math.floor(Math.random() * data.items.length);
-    const book = data.items[randomIndex].volumeInfo;
-    const isbn = book.industryIdentifiers?.find((id: any) => 
-      id.type === 'ISBN_13' || id.type === 'ISBN_10'
-    )?.identifier;
-
-    return {
-      id: data.items[randomIndex].id,
-      title: book.title || 'Unknown Title',
-      author: book.authors?.[0] || 'Unknown Author',
-      cover: book.imageLinks?.thumbnail?.replace('http:', 'https:') || 
-             'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
-      description: book.description || 'No description available.',
-      amazonLink: isbn ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` : undefined
-    };
+    return null;
   } catch (error) {
-    console.error('Error fetching book:', error);
-    throw error;
+    console.error('Error fetching fallback book:', error);
+    return null;
   }
+};
+
+// Keep original function for backward compatibility
+export const fetchRandomBook = async (
+  preferences?: UserPreferences,
+  library?: LibraryBook[]
+): Promise<Book> => {
+  const books = await fetchRandomBooks(preferences, library);
+  return books[0];
 };
 
 export const fetchBookByISBN = async (isbn: string): Promise<BookByISBN> => {
   try {
     const cleanISBN = isbn.replace(/[-\s]/g, '');
+    
+    // Check cache first
+    const cacheKey = `isbn-${cleanISBN}`;
+    const cached = bookCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+    
     const response = await fetch(`${GOOGLE_BOOKS_API}?q=isbn:${cleanISBN}`);
     
     if (!response.ok) {
@@ -180,7 +998,7 @@ export const fetchBookByISBN = async (isbn: string): Promise<BookByISBN> => {
       id.type === 'ISBN_13' || id.type === 'ISBN_10'
     );
 
-    return {
+    const result = {
       id: data.items[0].id,
       isbn: isbnData?.identifier || cleanISBN,
       title: book.title || 'Unknown Title',
@@ -191,10 +1009,38 @@ export const fetchBookByISBN = async (isbn: string): Promise<BookByISBN> => {
       description: book.description || 'No description available.',
       publisher: book.publisher,
       publishedDate: book.publishedDate,
-      pageCount: book.pageCount
+      pageCount: book.pageCount,
+      amazonLink: isbnData?.identifier 
+        ? `https://www.amazon.com/dp/${isbnData.identifier}?tag=${AMAZON_AFFILIATE_TAG}` 
+        : undefined
     };
+    
+    // Cache the result
+    bookCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    
+    return result;
   } catch (error) {
     console.error('Error fetching book by ISBN:', error);
     throw error;
+  }
+};
+
+// Analytics tracking function
+export const trackAmazonClick = (userId: string | undefined, bookId: string, bookTitle: string) => {
+  try {
+    const clicks = JSON.parse(localStorage.getItem('thoth_amazon_clicks') || '[]');
+    
+    clicks.push({
+      userId: userId || 'guest',
+      bookId,
+      bookTitle,
+      timestamp: new Date().toISOString()
+    });
+    
+    localStorage.setItem('thoth_amazon_clicks', JSON.stringify(clicks));
+    
+    console.log('Amazon click tracked:', { userId, bookId, bookTitle });
+  } catch (error) {
+    console.error('Error tracking Amazon click:', error);
   }
 };
