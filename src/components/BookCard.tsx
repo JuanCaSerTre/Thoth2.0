@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { ExternalLink, Sparkles, Tablet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { trackAmazonClick } from '@/services/bookService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 
 export interface Book {
   id: string;
@@ -29,8 +30,12 @@ interface BookCardProps {
 
 export default function BookCard({ book, isRevealing }: BookCardProps) {
   const { user, addToToRead } = useAuth();
+  const { t, getAmazonLink, getKindleLink } = useLocalization();
   
   if (!book) return null;
+
+  const amazonUrl = getAmazonLink(book.isbn, book.title, book.author);
+  const kindleUrl = getKindleLink(book.isbn, book.title, book.author);
 
   const handleAmazonClick = () => {
     trackAmazonClick(user?.id, book.id, book.title);
@@ -122,35 +127,51 @@ export default function BookCard({ book, isRevealing }: BookCardProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex gap-3"
+              className="flex flex-col gap-3"
             >
-              <Button
-                onClick={handleAddToToRead}
-                variant="outline"
-                className="flex-1 rounded-full py-6 hover:scale-105 transition-transform duration-300"
-                size="lg"
-              >
-                Add to To Read
-              </Button>
-              
-              {book.amazonLink && (
+              <div className="flex gap-3">
                 <Button
                   asChild
                   className="flex-1 bg-foreground hover:bg-foreground/90 rounded-full py-6 hover:scale-105 transition-transform duration-300"
                   size="lg"
                 >
                   <a
-                    href={book.amazonLink}
+                    href={amazonUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleAmazonClick}
                     className="flex items-center justify-center gap-2"
                   >
-                    View on Amazon
+                    {t('book.buyOn')}
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </Button>
-              )}
+                <Button
+                  asChild
+                  variant="outline"
+                  className="rounded-full py-6 hover:scale-105 transition-transform duration-300 px-6"
+                  size="lg"
+                >
+                  <a
+                    href={kindleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleAmazonClick}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <Tablet className="w-4 h-4" />
+                    eBook
+                  </a>
+                </Button>
+              </div>
+              <Button
+                onClick={handleAddToToRead}
+                variant="outline"
+                className="w-full rounded-full py-6 hover:scale-105 transition-transform duration-300"
+                size="lg"
+              >
+                {t('book.addToRead')}
+              </Button>
             </motion.div>
           </div>
         </CardContent>

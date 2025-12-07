@@ -1,12 +1,103 @@
 import { motion } from 'framer-motion';
 import { Sparkles, BookOpen, Heart, Brain, Percent, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Link, Navigate } from 'react-router-dom';
 
 export default function Home() {
   const { user } = useAuth();
+  const { t, language } = useLocalization();
+
+  // Redirect to onboarding if user hasn't completed it
+  if (user && !user.preferences?.onboardingCompleted) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // Localized content
+  const heroContent = {
+    en: {
+      badge: 'Your next favorite book awaits',
+      question: "Don't know what to read?",
+      answer: 'We do.',
+      subtitle: 'AI-powered book recommendations that learn from your taste.',
+      discover: 'Discover Books',
+      start: 'Start Free',
+      hasAccount: 'I have an account',
+      readers: '+2,500 readers discovering books',
+      booksPerSession: 'Books per session',
+      aiAccuracy: 'AI Accuracy',
+      satisfaction: 'Satisfaction',
+    },
+    es: {
+      badge: 'Tu próximo libro favorito te espera',
+      question: '¿No sabes qué leer?',
+      answer: 'Nosotros sí.',
+      subtitle: 'Recomendaciones de libros personalizadas con IA que aprende de tus gustos.',
+      discover: 'Descubrir Libros',
+      start: 'Comenzar Gratis',
+      hasAccount: 'Ya tengo cuenta',
+      readers: '+2,500 lectores descubriendo libros',
+      booksPerSession: 'Libros por sesión',
+      aiAccuracy: 'Precisión IA',
+      satisfaction: 'Satisfacción',
+    },
+    fr: {
+      badge: 'Votre prochain livre préféré vous attend',
+      question: 'Vous ne savez pas quoi lire?',
+      answer: 'Nous oui.',
+      subtitle: 'Recommandations de livres personnalisées par IA qui apprend de vos goûts.',
+      discover: 'Découvrir des Livres',
+      start: 'Commencer Gratuitement',
+      hasAccount: "J'ai un compte",
+      readers: '+2,500 lecteurs découvrant des livres',
+      booksPerSession: 'Livres par session',
+      aiAccuracy: 'Précision IA',
+      satisfaction: 'Satisfaction',
+    },
+    pt: {
+      badge: 'Seu próximo livro favorito espera',
+      question: 'Não sabe o que ler?',
+      answer: 'Nós sabemos.',
+      subtitle: 'Recomendações de livros personalizadas com IA que aprende seus gostos.',
+      discover: 'Descobrir Livros',
+      start: 'Começar Grátis',
+      hasAccount: 'Já tenho conta',
+      readers: '+2,500 leitores descobrindo livros',
+      booksPerSession: 'Livros por sessão',
+      aiAccuracy: 'Precisão IA',
+      satisfaction: 'Satisfação',
+    },
+    de: {
+      badge: 'Dein nächstes Lieblingsbuch wartet',
+      question: 'Weißt du nicht, was du lesen sollst?',
+      answer: 'Wir schon.',
+      subtitle: 'KI-gestützte Buchempfehlungen, die von deinem Geschmack lernen.',
+      discover: 'Bücher Entdecken',
+      start: 'Kostenlos Starten',
+      hasAccount: 'Ich habe ein Konto',
+      readers: '+2,500 Leser entdecken Bücher',
+      booksPerSession: 'Bücher pro Sitzung',
+      aiAccuracy: 'KI-Genauigkeit',
+      satisfaction: 'Zufriedenheit',
+    },
+    it: {
+      badge: 'Il tuo prossimo libro preferito ti aspetta',
+      question: 'Non sai cosa leggere?',
+      answer: 'Noi sì.',
+      subtitle: 'Raccomandazioni di libri personalizzate con IA che impara dai tuoi gusti.',
+      discover: 'Scopri Libri',
+      start: 'Inizia Gratis',
+      hasAccount: 'Ho già un account',
+      readers: '+2,500 lettori che scoprono libri',
+      booksPerSession: 'Libri per sessione',
+      aiAccuracy: 'Precisione IA',
+      satisfaction: 'Soddisfazione',
+    },
+  };
+
+  const content = heroContent[language as keyof typeof heroContent] || heroContent.en;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
@@ -29,7 +120,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-sm font-medium text-amber-700 dark:text-amber-400">
               <Sparkles className="w-4 h-4" />
-              Tu próximo libro favorito te espera
+              {content.badge}
             </div>
           </motion.div>
 
@@ -48,10 +139,10 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-2xl sm:text-3xl md:text-4xl font-light text-foreground/80 max-w-3xl mx-auto mb-5 leading-snug"
           >
-            ¿No sabes qué leer?
+            {content.question}
             <br />
             <span className="font-semibold text-foreground">
-              Nosotros sí.
+              {content.answer}
             </span>
           </motion.p>
 
@@ -61,7 +152,7 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto mb-12 font-light leading-relaxed"
           >
-            Recomendaciones de libros personalizadas con IA que aprende de tus gustos.
+            {content.subtitle}
           </motion.p>
 
           <motion.div
@@ -77,7 +168,7 @@ export default function Home() {
                   className="text-base px-12 py-7 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white hover:scale-105 font-semibold group"
                 >
                   <Sparkles className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                  Descubrir Libros
+                  {content.discover}
                   <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -90,7 +181,7 @@ export default function Home() {
                       className="text-base px-12 py-7 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white hover:scale-105 font-semibold group w-full sm:w-auto"
                     >
                       <Sparkles className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                      Comenzar Gratis
+                      {content.start}
                     </Button>
                   </Link>
                   <Link to="/login">
@@ -99,13 +190,13 @@ export default function Home() {
                       variant="outline"
                       className="text-base px-10 py-7 rounded-full border-2 hover:bg-muted transition-all duration-300 hover:scale-105 font-medium w-full sm:w-auto"
                     >
-                      Ya tengo cuenta
+                      {content.hasAccount}
                     </Button>
                   </Link>
                 </div>
                 <p className="text-sm text-muted-foreground font-light flex items-center justify-center gap-2 mt-4">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  +2,500 lectores descubriendo libros
+                  {content.readers}
                 </p>
               </>
             )}
@@ -121,15 +212,15 @@ export default function Home() {
         >
           <div className="text-center p-5 md:p-7 bg-card rounded-2xl border border-border/50 hover:shadow-lg transition-shadow">
             <div className="text-3xl md:text-5xl font-bold text-amber-600 mb-2">3</div>
-            <div className="text-xs md:text-sm text-muted-foreground">Libros por sesión</div>
+            <div className="text-xs md:text-sm text-muted-foreground">{content.booksPerSession}</div>
           </div>
           <div className="text-center p-5 md:p-7 bg-card rounded-2xl border border-border/50 hover:shadow-lg transition-shadow">
             <div className="text-3xl md:text-5xl font-bold text-amber-600 mb-2">95%</div>
-            <div className="text-xs md:text-sm text-muted-foreground">Precisión IA</div>
+            <div className="text-xs md:text-sm text-muted-foreground">{content.aiAccuracy}</div>
           </div>
           <div className="text-center p-5 md:p-7 bg-card rounded-2xl border border-border/50 hover:shadow-lg transition-shadow">
             <div className="text-3xl md:text-5xl font-bold text-amber-600 mb-2">∞</div>
-            <div className="text-xs md:text-sm text-muted-foreground">Libros disponibles</div>
+            <div className="text-xs md:text-sm text-muted-foreground">{language === 'en' ? 'Books available' : language === 'es' ? 'Libros disponibles' : language === 'fr' ? 'Livres disponibles' : language === 'pt' ? 'Livros disponíveis' : language === 'de' ? 'Bücher verfügbar' : 'Libri disponibili'}</div>
           </div>
         </motion.div>
 

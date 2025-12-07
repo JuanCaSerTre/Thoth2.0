@@ -291,11 +291,17 @@ const scoreBook = (book: any, preferences?: UserPreferences, likedBooks?: any[],
 };
 
 // Map book data to RecommendedBook interface
-const mapToBook = (book: any): RecommendedBook => {
+const mapToBook = (book: any): RecommendedBook | null => {
   const volumeInfo = book.volumeInfo;
   const isbn = volumeInfo.industryIdentifiers?.find((id: any) => 
     id.type === 'ISBN_13' || id.type === 'ISBN_10'
   )?.identifier;
+
+  // Only return books with valid ISBN for Amazon links
+  if (!isbn || !/^(\d{10}|\d{13})$/.test(isbn.replace(/[-\s]/g, ''))) {
+    console.log(`Skipping book without valid ISBN: "${volumeInfo.title}"`);
+    return null;
+  }
 
   return {
     id: book.id,
@@ -305,9 +311,6 @@ const mapToBook = (book: any): RecommendedBook => {
            volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:') ||
            'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
     description: volumeInfo.description?.substring(0, 400) || 'No description available.',
-    amazonLink: isbn 
-      ? `https://www.amazon.com/dp/${isbn}?tag=${AMAZON_AFFILIATE_TAG}` 
-      : `https://www.amazon.com/s?k=${encodeURIComponent(volumeInfo.title + ' ' + volumeInfo.authors?.[0])}&tag=${AMAZON_AFFILIATE_TAG}`,
     isbn,
     categories: volumeInfo.categories || [],
     pageCount: volumeInfo.pageCount,
@@ -538,16 +541,18 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
 
         // Take top book from this AI recommendation
         if (scoredBooks.length > 0) {
-          const topBook = scoredBooks[0];
-          if (topBook.isbn) seenISBNs.add(topBook.isbn);
-          if (topBook.title) seenTitles.add(topBook.title);
-          
-          const mappedBook = mapToBook(topBook);
-          mappedBook.aiReasoning = aiRec.reasoning;
-          mappedBook.aiFocusArea = aiRec.focusArea;
-          
-          // Calculate compatibility score based on actual score
-          // Score ranges: 50 base + up to 400 from matches
+          for (const topBook of scoredBooks) {
+            const mappedBook = mapToBook(topBook);
+            if (!mappedBook) continue; // Skip books without valid ISBN
+            
+            if (topBook.isbn) seenISBNs.add(topBook.isbn);
+            if (topBook.title) seenTitles.add(topBook.title);
+            
+            mappedBook.aiReasoning = aiRec.reasoning;
+            mappedBook.aiFocusArea = aiRec.focusArea;
+            
+            // Calculate compatibility score based on actual score
+            // Score ranges: 50 base + up to 400 from matches
           const rawScore = Math.max(0, topBook.score);
           
           // More generous scoring to reach 80%+
@@ -571,9 +576,11 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
           // Add books with 70% or higher compatibility
           if (mappedBook.compatibilityScore >= 70) {
             allBooks.push(mappedBook);
-            console.log(`✓ Added book: "${mappedBook.title}" by ${mappedBook.author} (Score: ${topBook.score}, Compatibility: ${mappedBook.compatibilityScore}%)`);
+            console.log(`✓ Added book: "${mappedBook.title}" by ${mappedBook.author} (Score: ${topBook.score}, Compatibility: ${mappedBook.compatibilityScore}%, ISBN: ${mappedBook.isbn})`);
+            break; // Only take one book per AI recommendation
           } else {
             console.log(`✗ Skipped book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+          }
           }
         }
       } catch (error) {

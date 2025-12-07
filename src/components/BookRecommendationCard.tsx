@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { X, Sparkles, BookOpen, User, Tag, ExternalLink, Star, BookmarkPlus, Clock, Calendar, ShoppingCart } from 'lucide-react';
+import { X, Sparkles, BookOpen, User, Tag, ExternalLink, Star, BookmarkPlus, Clock, Calendar, ShoppingCart, Tablet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { trackAmazonClick } from '@/services/bookService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 
 export interface RecommendedBook {
   id: string;
@@ -60,9 +61,13 @@ const getCompatibilityConfig = (score: number) => {
 
 export default function BookRecommendationCard({ book, onLike, onDislike, index }: BookRecommendationCardProps) {
   const { user } = useAuth();
+  const { t, getAmazonLink, getKindleLink } = useLocalization();
   const compatConfig = book.compatibilityScore !== undefined 
     ? getCompatibilityConfig(book.compatibilityScore) 
     : null;
+
+  const amazonUrl = getAmazonLink(book.isbn, book.title, book.author);
+  const kindleUrl = getKindleLink(book.isbn, book.title, book.author);
 
   const handleAmazonClick = () => {
     trackAmazonClick(user?.id, book.id, book.title);
@@ -239,26 +244,42 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
 
           {/* Actions */}
           <div className="px-4 pb-4 mt-auto space-y-3">
-            {/* Amazon Buy Button - Primary CTA */}
-            {book.amazonLink && (
+            {/* Amazon Buy Buttons */}
+            <div className="flex gap-2">
               <Button
                 asChild
                 size="sm"
-                className="w-full rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-5"
+                className="flex-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-5"
               >
                 <a
-                  href={book.amazonLink}
+                  href={amazonUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleAmazonClick}
-                  className="flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-1.5"
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  Comprar en Amazon
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  {t('book.buyOn')}
                 </a>
               </Button>
-            )}
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="rounded-full border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 py-5 px-4"
+              >
+                <a
+                  href={kindleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleAmazonClick}
+                  className="flex items-center justify-center gap-1.5"
+                >
+                  <Tablet className="w-4 h-4" />
+                  eBook
+                </a>
+              </Button>
+            </div>
 
             {/* Secondary Action Buttons */}
             <div className="flex gap-2">
@@ -269,7 +290,7 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
                 className="flex-1 rounded-full border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 transition-all duration-200"
               >
                 <X className="w-4 h-4 mr-1.5" />
-                Pasar
+                {t('common.skip')}
               </Button>
               <Button
                 onClick={() => onLike(book)}
@@ -278,7 +299,7 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
                 className="flex-1 rounded-full border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all duration-200"
               >
                 <BookmarkPlus className="w-4 h-4 mr-1.5" />
-                Guardar
+                {t('common.save')}
               </Button>
             </div>
           </div>

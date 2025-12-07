@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import BarcodeScanner from '@/components/BarcodeScanner';
@@ -35,7 +36,8 @@ import {
   X, 
   Loader2,
   ShoppingCart,
-  ExternalLink
+  ExternalLink,
+  Tablet
 } from 'lucide-react';
 import LearningProgress from '@/components/LearningProgress';
 import { trackAmazonClick } from '@/services/bookService';
@@ -67,6 +69,7 @@ interface BookSearchResult {
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, updatePreferences, addToHistory, addToLibrary, removeFromLibrary, updateLibraryBook, removeFromToRead, moveToReadFromToRead, likeBook, dislikeBook, addToToRead } = useAuth();
+  const { t, getAmazonLink, getKindleLink, language: appLanguage } = useLocalization();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState('discover');
@@ -215,18 +218,16 @@ export default function Profile() {
           {totalInteractions === 5 && <p className="text-amber-600 font-medium">🎉 ¡La IA está aprendiendo tus gustos!</p>}
           {totalInteractions === 15 && <p className="text-purple-600 font-medium">🚀 ¡Perfil bien establecido!</p>}
           {totalInteractions === 30 && <p className="text-green-600 font-medium">⭐ ¡Eres un experto! Recomendaciones perfectas.</p>}
-          {book.amazonLink && (
-            <a 
-              href={book.amazonLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
-              className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700 font-medium text-sm"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              Comprar ahora en Amazon →
-            </a>
-          )}
+          <a 
+            href={getAmazonLink(book.isbn, book.title, book.author)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
+            className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700 font-medium text-sm"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            {t('book.buyOn')} →
+          </a>
         </div>
       )
     });
@@ -399,19 +400,28 @@ export default function Profile() {
     setIsAddingBook(true);
     try {
       const bookData = await fetchBookByISBN(isbn);
-      addToLibrary({
-        ...bookData,
-        addedAt: new Date().toISOString(),
-        status: 'read'
-      });
-      toast({
-        title: 'Book added!',
-        description: `${bookData.title} has been marked as read and will improve your recommendations.`
-      });
+      try {
+        await addToLibrary({
+          ...bookData,
+          addedAt: new Date().toISOString(),
+          status: 'read'
+        });
+        toast({
+          title: '¡Libro agregado!',
+          description: `${bookData.title} ha sido marcado como leído.`
+        });
+      } catch (libraryError) {
+        // Book already exists in library
+        toast({
+          title: 'Libro ya existe',
+          description: `${bookData.title} ya está en tu biblioteca.`,
+          variant: 'default'
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Could not add book',
+        description: error instanceof Error ? error.message : 'No se pudo agregar el libro',
         variant: 'destructive'
       });
     } finally {
@@ -805,26 +815,41 @@ export default function Profile() {
                               </div>
                             )}
                             
-                            {/* Amazon Buy Button */}
-                            {book.amazonLink && (
+                            {/* Amazon Buy Buttons */}
+                            <div className="flex gap-1.5">
                               <Button
                                 asChild
                                 size="sm"
-                                className="w-full rounded-full text-xs h-9 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md"
+                                className="flex-1 rounded-full text-xs h-9 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md"
                               >
                                 <a
-                                  href={book.amazonLink}
+                                  href={getAmazonLink(book.isbn, book.title, book.author)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
-                                  className="flex items-center justify-center gap-1.5"
+                                  className="flex items-center justify-center gap-1"
                                 >
-                                  <ShoppingCart className="w-3.5 h-3.5" />
-                                  Comprar en Amazon
-                                  <ExternalLink className="w-3 h-3" />
+                                  <ShoppingCart className="w-3 h-3" />
+                                  {t('book.buyOn')}
                                 </a>
                               </Button>
-                            )}
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full text-xs h-9 px-3 border-amber-500/30 text-amber-600"
+                              >
+                                <a
+                                  href={getKindleLink(book.isbn, book.title, book.author)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
+                                  className="flex items-center justify-center gap-1"
+                                >
+                                  <Tablet className="w-3 h-3" />
+                                </a>
+                              </Button>
+                            </div>
                             
                             <div className="flex gap-2 pt-1">
                               <Button

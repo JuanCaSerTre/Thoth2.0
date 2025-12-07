@@ -199,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             genres: preferences.genres || [],
             language: preferences.language || 'en',
             readingDuration: preferences.reading_duration || 'medium',
-            onboardingCompleted: true
+            onboardingCompleted: preferences.onboarding_completed === true
           } : {
             genres: [],
             language: 'en',
@@ -261,12 +261,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string): Promise<User> => {
+    console.log('Attempting login for:', email);
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (error) throw error;
+    console.log('Login response:', { data, error });
+
+    if (error) {
+      console.error('Login error:', error.message);
+      throw new Error(error.message === 'Invalid login credentials' 
+        ? 'Email o contraseña incorrectos. Verifica tus credenciales.' 
+        : error.message);
+    }
+    
     if (!data.user) throw new Error('Login failed');
 
     await loadUserData(data.user.id);
@@ -274,21 +284,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, password: string, preferences: User['preferences']) => {
+    console.log('Attempting registration for:', email);
+    
     const { data, error } = await supabase.auth.signUp({
       email,
-      password
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
     });
 
-    if (error) throw error;
+    console.log('Registration response:', { data, error });
+
+    if (error) {
+      console.error('Registration error:', error.message);
+      throw new Error(error.message);
+    }
+    
     if (!data.user) throw new Error('Registration failed');
 
+    // Check if email confirmation is required
+    if (data.user.identities && data.user.identities.length === 0) {
+      throw new Error('Este email ya está registrado. Por favor inicia sesión.');
+    }
+
     // Save preferences
-    await supabase.from('user_preferences').insert({
+    const { error: prefError } = await supabase.from('user_preferences').insert({
       user_id: data.user.id,
       genres: preferences.genres || [],
       language: preferences.language || 'en',
       reading_duration: preferences.readingDuration || 'medium'
-    });
+    } as Database['public']['Tables']['user_preferences']['Insert']);
+
+    if (prefError) {
+      console.error('Preferences save error:', prefError);
+    }
 
     await loadUserData(data.user.id);
   };
@@ -312,7 +342,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_id: user.id,
         genres: mergedPreferences.genres || [],
         language: mergedPreferences.language || 'en',
-        reading_duration: mergedPreferences.readingDuration || 'medium'
+        reading_duration: mergedPreferences.readingDuration || 'medium',
+        onboarding_completed: mergedPreferences.onboardingCompleted || false
       });
     
     const updatedUser = { ...user, preferences: mergedPreferences };
@@ -345,26 +376,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLibrary = user.library || [];
     const exists = currentLibrary.find(b => b.isbn === book.isbn);
     if (exists) {
-      throw new Error('Book already in library');
+      throw new Error('El libro ya está en tu biblioteca');
     }
 
-    await supabase.from('library').insert({
-      user_id: user.id,
-      book_id: book.id,
-      isbn: book.isbn,
-      title: book.title,
-      author: book.author,
-      cover: book.cover,
-      pages: book.pages,
-      status: book.status,
-      current_page: book.currentPage,
-      rating: book.rating,
-      notes: book.notes
-    });
+    try {
+      await supabase.from('library').insert({
+        user_id: user.id,
+        book_id: book.id,
+        isbn: book.isbn,
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        pages: book.pages,
+        status: book.status,
+        current_page: book.currentPage,
+        rating: book.rating,
+        notes: book.notes
+      });
 
-    const updatedLibrary = [book, ...currentLibrary];
-    const updatedUser = { ...user, library: updatedLibrary };
-    setUser(updatedUser);
+      const updatedLibrary = [book, ...currentLibrary];
+      const updatedUser = { ...user, library: updatedLibrary };
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Error adding to library:', error);
+      throw error;
+    }
   };
 
   const removeFromLibrary = async (bookId: string) => {

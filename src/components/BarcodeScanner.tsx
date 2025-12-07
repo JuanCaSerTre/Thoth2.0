@@ -63,9 +63,22 @@ export default function BarcodeScanner({ isOpen, onClose, onScan }: BarcodeScann
           // ISBN codes are typically 10 or 13 digits
           const isbnMatch = decodedText.match(/\d{10,13}/);
           if (isbnMatch) {
-            onScan(isbnMatch[0]);
-            stopScanning();
-            onClose();
+            // Stop scanning first, then notify parent
+            if (scannerRef.current) {
+              scannerRef.current.stop().then(() => {
+                setIsScanning(false);
+                onScan(isbnMatch[0]);
+                onClose();
+              }).catch((err) => {
+                console.error('Error stopping scanner:', err);
+                setIsScanning(false);
+                onScan(isbnMatch[0]);
+                onClose();
+              });
+            } else {
+              onScan(isbnMatch[0]);
+              onClose();
+            }
           }
         },
         (errorMessage) => {

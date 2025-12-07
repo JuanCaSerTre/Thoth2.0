@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LocalizationProvider } from "@/contexts/LocalizationContext";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/components/home";
 import Login from "@/components/Login";
@@ -11,28 +12,30 @@ import Onboarding from "@/components/Onboarding";
 
 function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Cargando...</p>
+    <LocalizationProvider>
+      <AuthProvider>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
           </div>
-        </div>
-      }>
-        <>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/profile" element={<Profile />} />
-          </Routes>
-          <Toaster />
-        </>
-      </Suspense>
-    </AuthProvider>
+        }>
+          <>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/profile" element={<Profile />} />
+            </Routes>
+            <Toaster />
+          </>
+        </Suspense>
+      </AuthProvider>
+    </LocalizationProvider>
   );
 }
 

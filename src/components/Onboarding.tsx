@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,100 +10,226 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { BookOpen, Heart, Compass, Sparkles, Target, Brain } from 'lucide-react';
 
-// Paso 1: ¿Qué géneros te apasionan?
+// Genres (universal)
 const GENRES = [
   'Fiction', 'Nonfiction', 'Fantasy', 'Science Fiction', 'Mystery', 
   'Romance', 'Biography', 'Self-help', 'Thriller', 'History',
   'Philosophy', 'Poetry', 'Horror', 'Adventure', 'Business'
 ];
 
-// Paso 2: Preguntas psicológicas para perfilar
-const PSYCHOLOGICAL_QUESTIONS = [
-  {
-    id: 'stress_response',
-    question: '¿Cómo reaccionas ante situaciones de estrés?',
-    options: [
-      { id: 'analyze', label: 'Analizo la situación con calma', icon: '🧠' },
-      { id: 'action', label: 'Tomo acción inmediata', icon: '⚡' },
-      { id: 'escape', label: 'Busco distraerme o escapar', icon: '🌙' },
-      { id: 'support', label: 'Busco apoyo en otros', icon: '🤝' }
-    ]
-  },
-  {
-    id: 'decision_making',
-    question: '¿Cómo tomas decisiones importantes?',
-    options: [
-      { id: 'logic', label: 'Con lógica y datos', icon: '📊' },
-      { id: 'intuition', label: 'Sigo mi intuición', icon: '✨' },
-      { id: 'advice', label: 'Consulto con otros', icon: '💬' },
-      { id: 'time', label: 'Me tomo mucho tiempo para pensar', icon: '⏳' }
-    ]
-  },
-  {
-    id: 'social_energy',
-    question: '¿Cómo recargas tu energía?',
-    options: [
-      { id: 'alone', label: 'Tiempo a solas', icon: '🏠' },
-      { id: 'people', label: 'Rodeado de personas', icon: '👥' },
-      { id: 'nature', label: 'En la naturaleza', icon: '🌿' },
-      { id: 'creative', label: 'Haciendo algo creativo', icon: '🎨' }
-    ]
-  },
-  {
-    id: 'life_priority',
-    question: '¿Qué valoras más en la vida?',
-    options: [
-      { id: 'knowledge', label: 'Conocimiento y aprendizaje', icon: '📚' },
-      { id: 'relationships', label: 'Relaciones y conexiones', icon: '❤️' },
-      { id: 'adventure', label: 'Aventura y experiencias', icon: '🗺️' },
-      { id: 'stability', label: 'Estabilidad y seguridad', icon: '🏡' }
-    ]
-  },
-  {
-    id: 'challenge_approach',
-    question: '¿Cómo enfrentas los desafíos?',
-    options: [
-      { id: 'head_on', label: 'De frente, sin miedo', icon: '💪' },
-      { id: 'strategic', label: 'Con estrategia y planificación', icon: '♟️' },
-      { id: 'creative', label: 'Buscando soluciones creativas', icon: '💡' },
-      { id: 'patience', label: 'Con paciencia, esperando el momento', icon: '🧘' }
-    ]
-  }
-];
+// Localized content
+const getLocalizedContent = (lang: string) => {
+  const content = {
+    en: {
+      psychQuestions: [
+        {
+          id: 'stress_response',
+          question: 'How do you react to stressful situations?',
+          options: [
+            { id: 'analyze', label: 'I analyze the situation calmly', icon: '🧠' },
+            { id: 'action', label: 'I take immediate action', icon: '⚡' },
+            { id: 'escape', label: 'I seek distraction or escape', icon: '🌙' },
+            { id: 'support', label: 'I seek support from others', icon: '🤝' }
+          ]
+        },
+        {
+          id: 'decision_making',
+          question: 'How do you make important decisions?',
+          options: [
+            { id: 'logic', label: 'With logic and data', icon: '📊' },
+            { id: 'intuition', label: 'I follow my intuition', icon: '✨' },
+            { id: 'advice', label: 'I consult with others', icon: '💬' },
+            { id: 'time', label: 'I take a lot of time to think', icon: '⏳' }
+          ]
+        },
+        {
+          id: 'social_energy',
+          question: 'How do you recharge your energy?',
+          options: [
+            { id: 'alone', label: 'Time alone', icon: '🏠' },
+            { id: 'people', label: 'Surrounded by people', icon: '👥' },
+            { id: 'nature', label: 'In nature', icon: '🌿' },
+            { id: 'creative', label: 'Doing something creative', icon: '🎨' }
+          ]
+        },
+        {
+          id: 'life_priority',
+          question: 'What do you value most in life?',
+          options: [
+            { id: 'knowledge', label: 'Knowledge and learning', icon: '📚' },
+            { id: 'relationships', label: 'Relationships and connections', icon: '❤️' },
+            { id: 'adventure', label: 'Adventure and experiences', icon: '🗺️' },
+            { id: 'stability', label: 'Stability and security', icon: '🏡' }
+          ]
+        },
+        {
+          id: 'challenge_approach',
+          question: 'How do you face challenges?',
+          options: [
+            { id: 'head_on', label: 'Head on, fearlessly', icon: '💪' },
+            { id: 'strategic', label: 'With strategy and planning', icon: '♟️' },
+            { id: 'creative', label: 'Looking for creative solutions', icon: '💡' },
+            { id: 'patience', label: 'With patience, waiting for the right moment', icon: '🧘' }
+          ]
+        }
+      ],
+      readingGoals: [
+        { id: 'escape', label: 'Escape from reality', icon: '🌙' },
+        { id: 'learn', label: 'Learn something new', icon: '🧠' },
+        { id: 'grow', label: 'Personal growth', icon: '🌱' },
+        { id: 'entertain', label: 'Pure entertainment', icon: '🎭' },
+        { id: 'inspire', label: 'Inspiration and motivation', icon: '✨' },
+        { id: 'relax', label: 'Relax and disconnect', icon: '☕' },
+        { id: 'challenge', label: 'Challenge my mind', icon: '🎯' },
+        { id: 'connect', label: 'Connect with emotions', icon: '💫' }
+      ],
+      readerTypes: [
+        { id: 'explorer', label: 'Explorer', desc: 'I like discovering new genres and authors', icon: '🧭' },
+        { id: 'deep', label: 'Deep', desc: 'I prefer to analyze and reflect on what I read', icon: '🔍' },
+        { id: 'fast', label: 'Fast', desc: 'I devour books quickly, always want more', icon: '⚡' },
+        { id: 'selective', label: 'Selective', desc: 'I choose carefully, quality over quantity', icon: '💎' },
+        { id: 'mood', label: 'Mood-based', desc: 'I read according to how I feel', icon: '🎨' },
+        { id: 'loyal', label: 'Loyal', desc: 'I have favorite authors and follow them faithfully', icon: '❤️' }
+      ],
+      storyVibes: [
+        { id: 'hopeful', label: 'Hopeful', desc: 'Happy endings, overcoming' },
+        { id: 'dark', label: 'Dark', desc: 'Complex, morally gray' },
+        { id: 'funny', label: 'Funny', desc: 'Humor, lightness, laughs' },
+        { id: 'emotional', label: 'Emotional', desc: 'That make me cry or feel deeply' },
+        { id: 'thoughtful', label: 'Thoughtful', desc: 'That leave me thinking for days' },
+        { id: 'action', label: 'Action', desc: 'Fast pace, adrenaline' }
+      ],
+      steps: {
+        step1Title: 'What genres are you passionate about?',
+        step1Subtitle: 'Select at least 3 genres you enjoy',
+        step2Title: 'Tell us about yourself',
+        step2Subtitle: 'This helps us understand your reading personality',
+        step3Title: 'What do you seek when reading?',
+        step3Subtitle: 'Select all that apply',
+        step4Title: 'How would you describe yourself as a reader?',
+        step4Subtitle: 'Choose the one that best represents you',
+        step5Title: 'What type of stories move you?',
+        step5Subtitle: 'Select all that resonate with you',
+        step6Title: 'Preferred language for books',
+        step6Subtitle: 'We will recommend books in this language',
+        favoriteBookLabel: 'Tell us about a book you loved (optional)',
+        favoriteBookPlaceholder: 'Example: "1984 by George Orwell changed my perspective on..."',
+        next: 'Next',
+        back: 'Back',
+        finish: 'Start Discovering',
+        skip: 'Skip',
+        successTitle: 'Profile created!',
+        successDesc: 'We are ready to recommend books for you.'
+      }
+    },
+    es: {
+      psychQuestions: [
+        {
+          id: 'stress_response',
+          question: '¿Cómo reaccionas ante situaciones de estrés?',
+          options: [
+            { id: 'analyze', label: 'Analizo la situación con calma', icon: '🧠' },
+            { id: 'action', label: 'Tomo acción inmediata', icon: '⚡' },
+            { id: 'escape', label: 'Busco distraerme o escapar', icon: '🌙' },
+            { id: 'support', label: 'Busco apoyo en otros', icon: '🤝' }
+          ]
+        },
+        {
+          id: 'decision_making',
+          question: '¿Cómo tomas decisiones importantes?',
+          options: [
+            { id: 'logic', label: 'Con lógica y datos', icon: '📊' },
+            { id: 'intuition', label: 'Sigo mi intuición', icon: '✨' },
+            { id: 'advice', label: 'Consulto con otros', icon: '💬' },
+            { id: 'time', label: 'Me tomo mucho tiempo para pensar', icon: '⏳' }
+          ]
+        },
+        {
+          id: 'social_energy',
+          question: '¿Cómo recargas tu energía?',
+          options: [
+            { id: 'alone', label: 'Tiempo a solas', icon: '🏠' },
+            { id: 'people', label: 'Rodeado de personas', icon: '👥' },
+            { id: 'nature', label: 'En la naturaleza', icon: '🌿' },
+            { id: 'creative', label: 'Haciendo algo creativo', icon: '🎨' }
+          ]
+        },
+        {
+          id: 'life_priority',
+          question: '¿Qué valoras más en la vida?',
+          options: [
+            { id: 'knowledge', label: 'Conocimiento y aprendizaje', icon: '📚' },
+            { id: 'relationships', label: 'Relaciones y conexiones', icon: '❤️' },
+            { id: 'adventure', label: 'Aventura y experiencias', icon: '🗺️' },
+            { id: 'stability', label: 'Estabilidad y seguridad', icon: '🏡' }
+          ]
+        },
+        {
+          id: 'challenge_approach',
+          question: '¿Cómo enfrentas los desafíos?',
+          options: [
+            { id: 'head_on', label: 'De frente, sin miedo', icon: '💪' },
+            { id: 'strategic', label: 'Con estrategia y planificación', icon: '♟️' },
+            { id: 'creative', label: 'Buscando soluciones creativas', icon: '💡' },
+            { id: 'patience', label: 'Con paciencia, esperando el momento', icon: '🧘' }
+          ]
+        }
+      ],
+      readingGoals: [
+        { id: 'escape', label: 'Escapar de la realidad', icon: '🌙' },
+        { id: 'learn', label: 'Aprender algo nuevo', icon: '🧠' },
+        { id: 'grow', label: 'Crecimiento personal', icon: '🌱' },
+        { id: 'entertain', label: 'Entretenimiento puro', icon: '🎭' },
+        { id: 'inspire', label: 'Inspiración y motivación', icon: '✨' },
+        { id: 'relax', label: 'Relajarme y desconectar', icon: '☕' },
+        { id: 'challenge', label: 'Desafiar mi mente', icon: '🎯' },
+        { id: 'connect', label: 'Conectar con emociones', icon: '💫' }
+      ],
+      readerTypes: [
+        { id: 'explorer', label: 'Explorador', desc: 'Me gusta descubrir géneros y autores nuevos', icon: '🧭' },
+        { id: 'deep', label: 'Profundo', desc: 'Prefiero analizar y reflexionar sobre lo que leo', icon: '🔍' },
+        { id: 'fast', label: 'Veloz', desc: 'Devoro libros rápidamente, siempre quiero más', icon: '⚡' },
+        { id: 'selective', label: 'Selectivo', desc: 'Elijo cuidadosamente, calidad sobre cantidad', icon: '💎' },
+        { id: 'mood', label: 'Por estado de ánimo', desc: 'Leo según cómo me siento en el momento', icon: '🎨' },
+        { id: 'loyal', label: 'Leal', desc: 'Tengo autores favoritos y los sigo fielmente', icon: '❤️' }
+      ],
+      storyVibes: [
+        { id: 'hopeful', label: 'Esperanzadoras', desc: 'Finales felices, superación' },
+        { id: 'dark', label: 'Oscuras', desc: 'Complejas, moralmente grises' },
+        { id: 'funny', label: 'Divertidas', desc: 'Humor, ligereza, risas' },
+        { id: 'emotional', label: 'Emotivas', desc: 'Que me hagan llorar o sentir profundamente' },
+        { id: 'thoughtful', label: 'Reflexivas', desc: 'Que me dejen pensando días después' },
+        { id: 'action', label: 'De acción', desc: 'Ritmo rápido, adrenalina' }
+      ],
+      steps: {
+        step1Title: '¿Qué géneros te apasionan?',
+        step1Subtitle: 'Selecciona al menos 3 géneros que disfrutes',
+        step2Title: 'Cuéntanos sobre ti',
+        step2Subtitle: 'Esto nos ayuda a entender tu personalidad lectora',
+        step3Title: '¿Qué buscas cuando lees?',
+        step3Subtitle: 'Selecciona todas las que apliquen',
+        step4Title: '¿Cómo te describes como lector?',
+        step4Subtitle: 'Elige la que mejor te represente',
+        step5Title: '¿Qué tipo de historias te conmueven?',
+        step5Subtitle: 'Selecciona todas las que resuenen contigo',
+        step6Title: 'Idioma preferido para libros',
+        step6Subtitle: 'Te recomendaremos libros en este idioma',
+        favoriteBookLabel: 'Cuéntanos sobre un libro que amaste (opcional)',
+        favoriteBookPlaceholder: 'Ejemplo: "1984 de George Orwell cambió mi perspectiva sobre..."',
+        next: 'Siguiente',
+        back: 'Atrás',
+        finish: 'Comenzar a Descubrir',
+        skip: 'Omitir',
+        successTitle: '¡Perfil creado!',
+        successDesc: 'Estamos listos para recomendarte libros.'
+      }
+    }
+  };
+  
+  return content[lang as keyof typeof content] || content.en;
+};
 
-// Paso 3: ¿Qué buscas cuando lees?
-const READING_GOALS = [
-  { id: 'escape', label: 'Escapar de la realidad', icon: '🌙' },
-  { id: 'learn', label: 'Aprender algo nuevo', icon: '🧠' },
-  { id: 'grow', label: 'Crecimiento personal', icon: '🌱' },
-  { id: 'entertain', label: 'Entretenimiento puro', icon: '🎭' },
-  { id: 'inspire', label: 'Inspiración y motivación', icon: '✨' },
-  { id: 'relax', label: 'Relajarme y desconectar', icon: '☕' },
-  { id: 'challenge', label: 'Desafiar mi mente', icon: '🎯' },
-  { id: 'connect', label: 'Conectar con emociones', icon: '💫' }
-];
-
-// Paso 4: ¿Cómo te describes como lector?
-const READER_TYPES = [
-  { id: 'explorer', label: 'Explorador', desc: 'Me gusta descubrir géneros y autores nuevos', icon: '🧭' },
-  { id: 'deep', label: 'Profundo', desc: 'Prefiero analizar y reflexionar sobre lo que leo', icon: '🔍' },
-  { id: 'fast', label: 'Veloz', desc: 'Devoro libros rápidamente, siempre quiero más', icon: '⚡' },
-  { id: 'selective', label: 'Selectivo', desc: 'Elijo cuidadosamente, calidad sobre cantidad', icon: '💎' },
-  { id: 'mood', label: 'Por estado de ánimo', desc: 'Leo según cómo me siento en el momento', icon: '🎨' },
-  { id: 'loyal', label: 'Leal', desc: 'Tengo autores favoritos y los sigo fielmente', icon: '❤️' }
-];
-
-// Paso 5: ¿Qué tipo de historias te conmueven?
-const STORY_VIBES = [
-  { id: 'hopeful', label: 'Esperanzadoras', desc: 'Finales felices, superación' },
-  { id: 'dark', label: 'Oscuras', desc: 'Complejas, moralmente grises' },
-  { id: 'funny', label: 'Divertidas', desc: 'Humor, ligereza, risas' },
-  { id: 'emotional', label: 'Emotivas', desc: 'Que me hagan llorar o sentir profundamente' },
-  { id: 'thoughtful', label: 'Reflexivas', desc: 'Que me dejen pensando días después' },
-  { id: 'action', label: 'De acción', desc: 'Ritmo rápido, adrenalina' }
-];
-
-// Paso 6: Idioma preferido
+// Languages (universal)
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
@@ -114,9 +241,19 @@ const LANGUAGES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { updatePreferences } = useAuth();
+  const { user, updatePreferences } = useAuth();
+  const { language } = useLocalization();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
+  
+  const localizedContent = getLocalizedContent(language);
+
+  // Redirect to home if user already completed onboarding
+  useEffect(() => {
+    if (user?.preferences?.onboardingCompleted) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
   
   const [formData, setFormData] = useState({
     genres: [] as string[],
@@ -124,7 +261,7 @@ export default function Onboarding() {
     readingGoals: [] as string[],
     readerType: '',
     storyVibes: [] as string[],
-    language: 'es',
+    language: language,
     favoriteBook: ''
   });
 
@@ -150,7 +287,7 @@ export default function Onboarding() {
   const handleSubmit = () => {
     if (formData.genres.length === 0) {
       toast({
-        title: 'Selecciona al menos un género',
+        title: language === 'es' ? 'Selecciona al menos un género' : 'Select at least one genre',
         variant: 'destructive'
       });
       return;
@@ -171,8 +308,8 @@ export default function Onboarding() {
     updatePreferences(preferences);
 
     toast({
-      title: '¡Perfil creado!',
-      description: 'Tu personalidad lectora ha sido guardada. Ahora puedes agregar libros que ya hayas leído.'
+      title: localizedContent.steps.successTitle,
+      description: localizedContent.steps.successDesc
     });
 
     navigate('/profile?tab=library');
@@ -183,24 +320,24 @@ export default function Onboarding() {
   const totalSteps = 6;
 
   const titles = [
-    '¿Qué géneros te apasionan?',
-    'Conociéndote mejor',
-    '¿Qué buscas cuando lees?',
-    '¿Cómo te describes como lector?',
-    '¿Qué tipo de historias te conmueven?',
-    'Cuéntanos un poco más'
+    localizedContent.steps.step1Title,
+    localizedContent.steps.step2Title,
+    localizedContent.steps.step3Title,
+    localizedContent.steps.step4Title,
+    localizedContent.steps.step5Title,
+    localizedContent.steps.step6Title
   ];
 
   const subtitles = [
-    'Selecciona todos los que te gusten',
-    'Responde estas 5 preguntas para personalizar tu experiencia',
-    'Elige lo que más te motiva a leer',
-    'Selecciona el que más te represente',
-    'Puedes elegir varios',
-    'Esto nos ayuda a conocerte mejor'
+    localizedContent.steps.step1Subtitle,
+    localizedContent.steps.step2Subtitle,
+    localizedContent.steps.step3Subtitle,
+    localizedContent.steps.step4Subtitle,
+    localizedContent.steps.step5Subtitle,
+    localizedContent.steps.step6Subtitle
   ];
 
-  const isPsychologicalComplete = Object.keys(formData.psychologicalProfile).length === PSYCHOLOGICAL_QUESTIONS.length;
+  const isPsychologicalComplete = Object.keys(formData.psychologicalProfile).length === localizedContent.psychQuestions.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-background dark:from-amber-950/20 dark:to-background flex items-center justify-center p-4 md:p-6">
@@ -229,7 +366,7 @@ export default function Onboarding() {
             {titles[step - 1]}
           </motion.h1>
           <p className="text-xs md:text-sm text-muted-foreground">
-            Paso {step} de {totalSteps} • {subtitles[step - 1]}
+            {language === 'es' ? 'Paso' : 'Step'} {step} {language === 'es' ? 'de' : 'of'} {totalSteps} • {subtitles[step - 1]}
           </p>
           
           <div className="mt-4 flex gap-1.5 max-w-xs mx-auto px-4">
@@ -285,7 +422,7 @@ export default function Onboarding() {
             {/* Paso 2: Preguntas Psicológicas */}
             {step === 2 && (
               <div className="space-y-6 flex-1 overflow-y-auto max-h-[500px] pr-2">
-                {PSYCHOLOGICAL_QUESTIONS.map((q, index) => (
+                {localizedContent.psychQuestions.map((q, index) => (
                   <motion.div
                     key={q.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -325,7 +462,7 @@ export default function Onboarding() {
             {step === 3 && (
               <div className="space-y-3 flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {READING_GOALS.map(goal => (
+                  {localizedContent.readingGoals.map(goal => (
                     <motion.div
                       key={goal.id}
                       whileHover={{ scale: 1.02 }}
@@ -351,7 +488,7 @@ export default function Onboarding() {
             {step === 4 && (
               <div className="space-y-3 flex-1">
                 <div className="grid grid-cols-1 gap-3">
-                  {READER_TYPES.map(type => (
+                  {localizedContent.readerTypes.map(type => (
                     <motion.div
                       key={type.id}
                       whileHover={{ scale: 1.01 }}
@@ -380,7 +517,7 @@ export default function Onboarding() {
             {step === 5 && (
               <div className="space-y-3 flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {STORY_VIBES.map(vibe => (
+                  {localizedContent.storyVibes.map(vibe => (
                     <motion.div
                       key={vibe.id}
                       whileHover={{ scale: 1.02 }}
@@ -407,7 +544,7 @@ export default function Onboarding() {
               <div className="space-y-6 flex-1">
                 <div>
                   <Label className="text-base md:text-lg font-semibold block mb-3">
-                    ¿En qué idioma prefieres leer?
+                    {localizedContent.steps.step6Title}
                   </Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {LANGUAGES.map(lang => (
@@ -431,10 +568,10 @@ export default function Onboarding() {
 
                 <div>
                   <Label className="text-base md:text-lg font-semibold block mb-3">
-                    ¿Cuál es un libro que te haya marcado? (opcional)
+                    {localizedContent.steps.favoriteBookLabel}
                   </Label>
                   <Textarea
-                    placeholder="Ej: 'Cien años de soledad' porque me transportó a un mundo mágico..."
+                    placeholder={localizedContent.steps.favoriteBookPlaceholder}
                     value={formData.favoriteBook}
                     onChange={(e) => setFormData(prev => ({ ...prev, favoriteBook: e.target.value }))}
                     className="text-sm md:text-base p-4 rounded-xl border-2 min-h-[100px] resize-none"
@@ -452,7 +589,7 @@ export default function Onboarding() {
                   className="flex-1 rounded-full py-5 text-sm"
                   size="default"
                 >
-                  Atrás
+                  {localizedContent.steps.back}
                 </Button>
               )}
               {step < totalSteps ? (
@@ -467,7 +604,7 @@ export default function Onboarding() {
                     (step === 4 && !formData.readerType)
                   }
                 >
-                  Siguiente
+                  {localizedContent.steps.next}
                 </Button>
               ) : (
                 <Button
@@ -475,7 +612,7 @@ export default function Onboarding() {
                   className="flex-1 rounded-full py-5 text-sm bg-amber-600 hover:bg-amber-700 text-white"
                   size="default"
                 >
-                  ¡Comenzar! ✨
+                  {localizedContent.steps.finish} ✨
                 </Button>
               )}
             </div>
