@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/types/supabase';
+
+type LibraryRow = Database['public']['Tables']['library']['Row'];
+type ToReadRow = Database['public']['Tables']['to_read']['Row'];
+type LikedBooksRow = Database['public']['Tables']['liked_books']['Row'];
+type DislikedBooksRow = Database['public']['Tables']['disliked_books']['Row'];
+type BookHistoryRow = Database['public']['Tables']['book_history']['Row'];
 
 interface User {
   id: string;
@@ -47,7 +54,9 @@ interface LibraryBook {
   cover: string;
   description: string;
   addedAt: string;
-  status: 'read' | 'reading' | 'toRead';
+  status: 'read' | 'reading' | 'toRead' | 'to-read';
+  pages?: number;
+  currentPage?: number;
   rating?: number;
   notes?: string;
 }
@@ -147,35 +156,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('book_history')
         .select('*')
         .eq('user_id', userId)
-        .order('revealed_at', { ascending: false });
+        .order('revealed_at', { ascending: false }) as { data: BookHistoryRow[] | null };
 
       // Get library
       const { data: library } = await supabase
         .from('library')
         .select('*')
         .eq('user_id', userId)
-        .order('added_at', { ascending: false });
+        .order('added_at', { ascending: false }) as { data: LibraryRow[] | null };
 
       // Get to_read
       const { data: toRead } = await supabase
         .from('to_read')
         .select('*')
         .eq('user_id', userId)
-        .order('added_at', { ascending: false });
+        .order('added_at', { ascending: false }) as { data: ToReadRow[] | null };
 
       // Get liked_books
       const { data: likedBooks } = await supabase
         .from('liked_books')
         .select('*')
         .eq('user_id', userId)
-        .order('liked_at', { ascending: false });
+        .order('liked_at', { ascending: false }) as { data: LikedBooksRow[] | null };
 
       // Get disliked_books
       const { data: dislikedBooks } = await supabase
         .from('disliked_books')
         .select('*')
         .eq('user_id', userId)
-        .order('disliked_at', { ascending: false });
+        .order('disliked_at', { ascending: false }) as { data: DislikedBooksRow[] | null };
 
       // Get user profile
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -209,6 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: l.title,
             author: l.author,
             cover: l.cover || '',
+            description: '',
             pages: l.pages || 0,
             status: l.status as 'to-read' | 'reading' | 'read',
             currentPage: l.current_page,

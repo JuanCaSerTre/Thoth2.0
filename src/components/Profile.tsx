@@ -179,7 +179,7 @@ export default function Profile() {
 
         toast({
           title: '¡Libros revelados!',
-          description: `${recommendations.length} libros personalizados. ${totalInteractions >= 5 ? 'La IA está aprendiendo de tus gustos.' : 'Guarda o pasa libros para mejorar las recomendaciones.'}`
+          description: `${newBooks.length} libros personalizados. ${totalInteractions >= 5 ? 'La IA está aprendiendo de tus gustos.' : 'Guarda o pasa libros para mejorar las recomendaciones.'}`
         });
       }, 800);
     } catch (error) {
@@ -278,7 +278,7 @@ export default function Profile() {
                'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
         description: book.volumeInfo.description || 'No description available.',
         addedAt: new Date().toISOString(),
-        status: 'read'
+        status: 'read' as const
       };
 
       addToLibrary(bookData);
@@ -353,7 +353,7 @@ export default function Profile() {
       cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80',
       description: 'Manually added book',
       addedAt: new Date().toISOString(),
-      status: 'read'
+      status: 'read' as const
     };
 
     addToLibrary(bookData);
