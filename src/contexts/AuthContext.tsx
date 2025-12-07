@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -113,111 +114,155 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('thoth_user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      // Ensure all arrays exist
-      setUser({
-        ...parsedUser,
-        library: parsedUser.library || [],
-        history: parsedUser.history || [],
-        toRead: parsedUser.toRead || [],
-        likedBooks: parsedUser.likedBooks || [],
-        dislikedBooks: parsedUser.dislikedBooks || []
-      });
-    }
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserData(session.user.id);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadUserData(session.user.id);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<User> => {
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (!foundUser) {
-      throw new Error('Invalid credentials');
-    }
+  const loadUserData = async (userId: string) => {
+    try {
+      // Get user preferences
+      const { data: preferences } = await supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-    const { password: _, ...userWithoutPassword } = foundUser;
-    const userWithDefaults = {
-      ...userWithoutPassword,
-      library: userWithoutPassword.library || [],
-      history: userWithoutPassword.history || [],
-      toRead: userWithoutPassword.toRead || [],
-      likedBooks: userWithoutPassword.likedBooks || [],
-      dislikedBooks: userWithoutPassword.dislikedBooks || []
-    };
-    setUser(userWithDefaults);
-    localStorage.setItem('thoth_user', JSON.stringify(userWithDefaults));
-    return userWithDefaults;
+      // Get book history
+      const { data: history } = await supabase
+        .from('book_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('revealed_at', { ascending: false });
+
+      // Get user profile
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser) {
+        setUser({
+          id: authUser.id,
+          email: authUser.email!,
+          preferences: preferences ? {
+            genres: preferences.genres || [],
+            language: preferences.language || 'en',
+            readingDuration: preferences.reading_duration || 'medium',
+            onboardingCompleted: true
+          } : {
+            genres: [],
+            language: 'en',
+            readingDuration: 'medium',
+            onboardingCompleted: false
+          },
+          history: history?.map(h => ({
+            id: h.id,
+            title: h.title,
+            author: h.authors?.[0] || 'Unknown',
+            cover: h.cover_url || '',
+            description: h.description || '',
+            revealedAt: h.revealed_at
+          })) || [],
+          library: [],
+          toRead: [],
+          likedBooks: [],
+          dislikedBooks: []
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<User> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+    if (!data.user) throw new Error('Login failed');
+
+    await loadUserData(data.user.id);
+    return user!;
   };
 
   const register = async (email: string, password: string, preferences: User['preferences']) => {
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    
-    if (users.find((u: any) => u.email === email)) {
-      throw new Error('Email already exists');
-    }
-
-    const newUser = {
-      id: Date.now().toString(),
+    const { data, error } = await supabase.auth.signUp({
       email,
-      password,
-      preferences,
-      history: [],
-      library: [],
-      toRead: [],
-      likedBooks: [],
-      dislikedBooks: []
-    };
+      password
+    });
 
-    users.push(newUser);
-    localStorage.setItem('thoth_users', JSON.stringify(users));
+    if (error) throw error;
+    if (!data.user) throw new Error('Registration failed');
 
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('thoth_user', JSON.stringify(userWithoutPassword));
+    // Save preferences
+    await supabase.from('user_preferences').insert({
+      user_id: data.user.id,
+      genres: preferences.genres || [],
+      language: preferences.language || 'en',
+      reading_duration: preferences.readingDuration || 'medium'
+    });
+
+    await loadUserData(data.user.id);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('thoth_user');
   };
 
-  const updatePreferences = (preferences: Partial<User['preferences']>) => {
+  const updatePreferences = async (preferences: Partial<User['preferences']>) => {
     if (!user) return;
     
-    // Merge preferences instead of replacing
     const mergedPreferences = {
       ...user.preferences,
       ...preferences
     };
+
+    await supabase
+      .from('user_preferences')
+      .upsert({
+        user_id: user.id,
+        genres: mergedPreferences.genres || [],
+        language: mergedPreferences.language || 'en',
+        reading_duration: mergedPreferences.readingDuration || 'medium'
+      });
     
     const updatedUser = { ...user, preferences: mergedPreferences };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, preferences: mergedPreferences } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
     
     console.log('Preferences updated:', mergedPreferences);
   };
 
-  const addToHistory = (book: Book) => {
+  const addToHistory = async (book: Book) => {
     if (!user) return;
+
+    await supabase.from('book_history').insert({
+      user_id: user.id,
+      book_id: book.id,
+      title: book.title,
+      authors: [book.author],
+      description: book.description,
+      cover_url: book.cover
+    });
 
     const currentHistory = user.history || [];
     const updatedHistory = [book, ...currentHistory];
     const updatedUser = { ...user, history: updatedHistory };
     setUser(updatedUser);
-    localStorage.setItem('thoth_user', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('thoth_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === user.id ? { ...u, history: updatedHistory } : u
-    );
-    localStorage.setItem('thoth_users', JSON.stringify(updatedUsers));
   };
 
   const addToLibrary = (book: LibraryBook) => {
