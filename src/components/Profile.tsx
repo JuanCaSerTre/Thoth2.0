@@ -155,11 +155,7 @@ export default function Profile() {
     return null;
   }
 
-  // Si el usuario no completó el onboarding, redirigir
-  if (!user.preferences?.onboardingCompleted) {
-    navigate('/onboarding');
-    return null;
-  }
+
 
   // New function to handle book reveal
   const handleReveal = async () => {

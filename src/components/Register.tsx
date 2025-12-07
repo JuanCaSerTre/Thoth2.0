@@ -51,7 +51,7 @@ export default function Register() {
       });
       toast({
         title: '¡Cuenta creada!',
-        description: 'Ahora vamos a conocerte mejor.'
+        description: 'Completa tu perfil para obtener mejores recomendaciones.'
       });
       navigate('/onboarding');
     } catch (error) {

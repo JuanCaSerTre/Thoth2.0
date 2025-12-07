@@ -8,11 +8,6 @@ import { Link, Navigate } from 'react-router-dom';
 export default function Home() {
   const { user } = useAuth();
 
-  // Si el usuario está logueado pero no completó el onboarding, redirigir
-  if (user && !user.preferences?.onboardingCompleted) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
       <Navigation />

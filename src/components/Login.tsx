@@ -29,13 +29,8 @@ export default function Login() {
         description: 'Has iniciado sesión correctamente.'
       });
       
-      // Si el usuario ya completó el onboarding, ir al perfil
-      // Si no, ir al home que redirigirá al onboarding
-      if (loggedInUser?.preferences?.onboardingCompleted) {
-        navigate('/profile');
-      } else {
-        navigate('/onboarding');
-      }
+      // Redirigir al home después del login
+      navigate('/');
     } catch (error) {
       toast({
         title: 'Error',
