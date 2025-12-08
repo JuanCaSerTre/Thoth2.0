@@ -7,6 +7,8 @@ import Navigation from '@/components/Navigation';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import BookCard from '@/components/BookCard';
 import BookRecommendationCard, { type RecommendedBook } from '@/components/BookRecommendationCard';
+import FeedbackDialog from '@/components/FeedbackDialog';
+import ProfileCompletion from '@/components/ProfileCompletion';
 import { fetchBookByISBN, getPersonalizedRecommendations } from '@/services/bookService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +39,8 @@ import {
   Loader2,
   ShoppingCart,
   ExternalLink,
-  Tablet
+  Tablet,
+  MessageSquare
 } from 'lucide-react';
 import LearningProgress from '@/components/LearningProgress';
 import { trackAmazonClick } from '@/services/bookService';
@@ -95,6 +98,7 @@ export default function Profile() {
   const [isAddingBook, setIsAddingBook] = useState(false);
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [readingDuration, setReadingDuration] = useState(user?.preferences?.readingDuration || 'medium');
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   
   // Update preferences when user changes them
   useEffect(() => {
@@ -499,6 +503,9 @@ export default function Profile() {
 
           {/* Learning Progress */}
           <LearningProgress />
+
+          {/* Profile Completion */}
+          <ProfileCompletion />
 
           {/* Reveal Books Section */}
           <Card className="shadow-lg border-0 bg-gradient-to-br from-card via-card to-amber-50/20 dark:to-amber-950/10 mb-6 sm:mb-8 overflow-hidden">
@@ -995,6 +1002,18 @@ export default function Profile() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Feedback Button */}
+          <div className="mt-6 sm:mt-8 text-center">
+            <Button
+              onClick={() => setShowFeedbackDialog(true)}
+              variant="outline"
+              className="rounded-full border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              {t('feedback.title')}
+            </Button>
+          </div>
         </motion.div>
       </main>
 
@@ -1002,6 +1021,11 @@ export default function Profile() {
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
         onScan={handleScanResult}
+      />
+
+      <FeedbackDialog
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
       />
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

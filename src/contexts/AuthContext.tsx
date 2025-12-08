@@ -125,31 +125,53 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserData(session.user.id);
-      } else {
-        setIsLoading(false);
+    let isMounted = true;
+    
+    // Check for existing session on mount
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          await loadUserData(session.user.id);
+        } else if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsInitialized(true);
+        }
       }
-    });
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadUserData(session.user.id);
-      } else {
+    initializeAuth();
+
+    // Listen for auth changes - only handle SIGNED_OUT after initialization
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      // Only handle sign out events after initialization
+      // Login/register will handle their own user loading
+      if (event === 'SIGNED_OUT' && isMounted) {
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const loadUserData = async (userId: string) => {
+  const loadUserData = async (userId: string): Promise<User | null> => {
     try {
       // Get user preferences
       const { data: preferences, error: prefError } = await supabase
@@ -201,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (authUser) {
-        setUser({
+        const newUser: User = {
           id: authUser.id,
           email: authUser.email!,
           preferences: preferences ? {
@@ -267,12 +289,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: '',
             dislikedAt: d.disliked_at
           })) || []
-        });
+        };
+        setUser(newUser);
         setIsLoading(false);
+        return newUser;
       }
+      setIsLoading(false);
+      return null;
     } catch (error) {
       console.error('Error loading user data:', error);
       setIsLoading(false);
+      return null;
     }
   };
 
@@ -295,8 +322,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (!data.user) throw new Error('Login failed');
 
-    await loadUserData(data.user.id);
-    return user!;
+    const loadedUser = await loadUserData(data.user.id);
+    if (!loadedUser) {
+      throw new Error('Failed to load user data');
+    }
+    return loadedUser;
   };
 
   const register = async (email: string, password: string, preferences: User['preferences']) => {

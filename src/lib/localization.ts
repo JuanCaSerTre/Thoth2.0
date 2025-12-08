@@ -196,6 +196,29 @@ export const translations: Record<string, Record<string, string>> = {
     
     // Barcode Scanner
     'scanner.title': 'Scan Barcode',
+    
+    // Feedback
+    'feedback.title': 'Send Feedback',
+    'feedback.subtitle': 'Help us improve THOTH',
+    'feedback.type': 'Feedback Type',
+    'feedback.typeSuggestion': 'Suggestion',
+    'feedback.typeBug': 'Bug Report',
+    'feedback.typeFeature': 'Feature Request',
+    'feedback.typeOther': 'Other',
+    'feedback.message': 'Your Message',
+    'feedback.messagePlaceholder': 'Tell us what you think...',
+    'feedback.rating': 'How would you rate THOTH?',
+    'feedback.submit': 'Send Feedback',
+    'feedback.success': 'Thank you for your feedback!',
+    'feedback.error': 'Error sending feedback',
+    
+    // Profile Completion
+    'profile.completion': 'Profile Completion',
+    'profile.completionTip': 'Complete your profile for better recommendations',
+    'profile.onboardingComplete': 'Onboarding completed',
+    'profile.addBooks': 'Add books to library',
+    'profile.likeBooks': 'Like recommended books',
+    'profile.saveBooks': 'Save books to read later',
   },
   es: {
     // Navigation
@@ -334,6 +357,29 @@ export const translations: Record<string, Record<string, string>> = {
     
     // Barcode Scanner
     'scanner.title': 'Escanear Código de Barras',
+    
+    // Feedback
+    'feedback.title': 'Enviar Comentarios',
+    'feedback.subtitle': 'Ayúdanos a mejorar THOTH',
+    'feedback.type': 'Tipo de Comentario',
+    'feedback.typeSuggestion': 'Sugerencia',
+    'feedback.typeBug': 'Reporte de Error',
+    'feedback.typeFeature': 'Solicitud de Función',
+    'feedback.typeOther': 'Otro',
+    'feedback.message': 'Tu Mensaje',
+    'feedback.messagePlaceholder': 'Cuéntanos qué piensas...',
+    'feedback.rating': '¿Cómo calificarías THOTH?',
+    'feedback.submit': 'Enviar Comentario',
+    'feedback.success': '¡Gracias por tu comentario!',
+    'feedback.error': 'Error al enviar comentario',
+    
+    // Profile Completion
+    'profile.completion': 'Completitud del Perfil',
+    'profile.completionTip': 'Completa tu perfil para mejores recomendaciones',
+    'profile.onboardingComplete': 'Onboarding completado',
+    'profile.addBooks': 'Agregar libros a biblioteca',
+    'profile.likeBooks': 'Dar like a libros recomendados',
+    'profile.saveBooks': 'Guardar libros para leer',
   },
   fr: {
     // Navigation

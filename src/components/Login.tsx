@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,12 +13,23 @@ import { BookOpen, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
   const { t, language } = useLocalization();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (!user.preferences?.onboardingCompleted) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   const content = {
     en: {
@@ -122,7 +133,12 @@ export default function Login() {
         description: c.successDesc
       });
       
-      navigate('/');
+      // Check if user needs to complete onboarding
+      if (loggedInUser && !loggedInUser.preferences?.onboardingCompleted) {
+        navigate('/onboarding');
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Login error in component:', error);
       toast({
@@ -134,6 +150,17 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
