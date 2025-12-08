@@ -241,19 +241,42 @@ const LANGUAGES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, updatePreferences } = useAuth();
+  const { user, updatePreferences, isLoading } = useAuth();
   const { language } = useLocalization();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   
   const localizedContent = getLocalizedContent(language);
 
-  // Redirect to home if user already completed onboarding
+  // Redirect to home if user is not logged in or already completed onboarding
   useEffect(() => {
-    if (user?.preferences?.onboardingCompleted) {
+    // Wait for auth to load
+    if (isLoading) return;
+    
+    // If not logged in, redirect to home
+    if (!user) {
+      navigate('/', { replace: true });
+      return;
+    }
+    // If already completed onboarding, redirect to home
+    if (user.preferences?.onboardingCompleted) {
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
+
+  // Show loading while auth is loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render anything if user is not logged in
+  if (!user) {
+    return null;
+  }
   
   const [formData, setFormData] = useState({
     genres: [] as string[],
