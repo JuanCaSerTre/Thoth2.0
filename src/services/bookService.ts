@@ -23,6 +23,7 @@ interface BookByISBN extends Book {
 }
 
 interface LibraryBook {
+  id?: string;
   isbn: string;
   title: string;
   author: string;
@@ -113,6 +114,32 @@ const buildSearchQuery = (
   }
   
   return queries.join('+');
+};
+
+// Search Google Books API
+const searchGoogleBooks = async (query: string, language: string = 'en'): Promise<any[]> => {
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      maxResults: '20',
+      orderBy: 'relevance',
+      langRestrict: language,
+      printType: 'books'
+    });
+
+    const response = await fetch(`${GOOGLE_BOOKS_API}?${params}`);
+    
+    if (!response.ok) {
+      console.error(`Google Books API request failed for query: ${query}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.items || [];
+  } catch (error) {
+    console.error('Error searching Google Books:', error);
+    return [];
+  }
 };
 
 // Filter out books already in library
