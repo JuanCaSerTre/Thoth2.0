@@ -580,12 +580,14 @@ export function generateAmazonLink(isbn: string | undefined, title: string, auth
   const domain = getAmazonDomain(countryCode);
   const tag = affiliateTag || import.meta.env.VITE_AMAZON_AFFILIATE_TAG || 'thoth02-22';
   
+  // Always use search - ISBN in /dp/ format doesn't work reliably
+  // Amazon search handles ISBN well and finds the correct product
   if (isbn) {
-    return `https://www.${domain}/dp/${isbn}?tag=${tag}`;
+    return `https://www.${domain}/s?k=${isbn}&i=stripbooks&tag=${tag}`;
   }
   
   const searchQuery = encodeURIComponent(`${title} ${author}`);
-  return `https://www.${domain}/s?k=${searchQuery}&tag=${tag}`;
+  return `https://www.${domain}/s?k=${searchQuery}&i=stripbooks&tag=${tag}`;
 }
 
 // Generate Amazon Kindle/eBook link

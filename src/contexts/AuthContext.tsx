@@ -152,11 +152,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadUserData = async (userId: string) => {
     try {
       // Get user preferences
-      const { data: preferences } = await supabase
+      const { data: preferences, error: prefError } = await supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
-        .single() as { data: UserPreferencesRow | null };
+        .single() as { data: UserPreferencesRow | null, error: any };
+
+      console.log('Loaded preferences from DB:', preferences);
+      console.log('Preferences error:', prefError);
+      console.log('onboarding_completed value:', preferences?.onboarding_completed);
 
       // Get book history
       const { data: history } = await supabase
@@ -343,15 +347,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...preferences
     };
 
-    await supabase
+    const { error } = await supabase
       .from('user_preferences')
       .upsert({
         user_id: user.id,
         genres: mergedPreferences.genres || [],
         language: mergedPreferences.language || 'en',
         reading_duration: mergedPreferences.readingDuration || 'medium',
-        onboarding_completed: mergedPreferences.onboardingCompleted || false
+        onboarding_completed: mergedPreferences.onboardingCompleted === true
+      }, {
+        onConflict: 'user_id'
       });
+    
+    if (error) {
+      console.error('Error saving preferences:', error);
+    } else {
+      console.log('Preferences saved successfully to database');
+    }
     
     const updatedUser = { ...user, preferences: mergedPreferences };
     setUser(updatedUser);

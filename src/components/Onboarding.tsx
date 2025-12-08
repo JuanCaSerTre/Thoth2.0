@@ -363,36 +363,36 @@ export default function Onboarding() {
   const isPsychologicalComplete = Object.keys(formData.psychologicalProfile).length === localizedContent.psychQuestions.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-background dark:from-amber-950/20 dark:to-background flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-background dark:from-amber-950/20 dark:to-background flex items-center justify-center p-3 sm:p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-xl"
       >
-        <div className="text-center mb-6 md:mb-8">
+        <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <motion.div
             key={step}
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-            className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-4"
+            className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-3 sm:mb-4"
           >
-            <Icon className="w-7 h-7 md:w-8 md:h-8 text-amber-600 dark:text-amber-400" />
+            <Icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-amber-600 dark:text-amber-400" />
           </motion.div>
           
           <motion.h1 
             key={`title-${step}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-xl md:text-2xl font-bold text-foreground mb-1"
+            className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-1"
           >
             {titles[step - 1]}
           </motion.h1>
-          <p className="text-xs md:text-sm text-muted-foreground">
+          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">
             {language === 'es' ? 'Paso' : 'Step'} {step} {language === 'es' ? 'de' : 'of'} {totalSteps} • {subtitles[step - 1]}
           </p>
           
-          <div className="mt-4 flex gap-1.5 max-w-xs mx-auto px-4">
+          <div className="mt-3 sm:mt-4 flex gap-1 sm:gap-1.5 max-w-xs mx-auto px-4">
             {Array.from({ length: totalSteps }).map((_, i) => (
               <motion.div
                 key={i}
@@ -414,27 +414,27 @@ export default function Onboarding() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
-            className="bg-card rounded-2xl shadow-lg border border-border p-5 md:p-6 min-h-[380px] flex flex-col"
+            className="bg-card rounded-xl sm:rounded-2xl shadow-lg border border-border p-4 sm:p-5 md:p-6 min-h-[340px] sm:min-h-[380px] flex flex-col"
           >
             {/* Paso 1: Géneros */}
             {step === 1 && (
-              <div className="space-y-3 flex-1">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-2 sm:space-y-3 flex-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
                   {GENRES.map(genre => (
                     <motion.div
                       key={genre}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleMultiSelect('genres', genre)}
-                      className={`p-3 md:p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                      className={`p-2 sm:p-3 md:p-4 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${
                         formData.genres.includes(genre)
                           ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                           : 'border-border hover:border-amber-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked={formData.genres.includes(genre)} className="pointer-events-none" />
-                        <span className="font-medium text-xs md:text-sm">{genre}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Checkbox checked={formData.genres.includes(genre)} className="pointer-events-none w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="font-medium text-[10px] sm:text-xs md:text-sm">{genre}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -444,34 +444,34 @@ export default function Onboarding() {
 
             {/* Paso 2: Preguntas Psicológicas */}
             {step === 2 && (
-              <div className="space-y-6 flex-1 overflow-y-auto max-h-[500px] pr-2">
+              <div className="space-y-4 sm:space-y-6 flex-1 overflow-y-auto max-h-[400px] sm:max-h-[500px] pr-1 sm:pr-2">
                 {localizedContent.psychQuestions.map((q, index) => (
                   <motion.div
                     key={q.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="space-y-3"
+                    className="space-y-2 sm:space-y-3"
                   >
-                    <Label className="text-sm md:text-base font-semibold block">
+                    <Label className="text-xs sm:text-sm md:text-base font-semibold block">
                       {index + 1}. {q.question}
                     </Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                       {q.options.map(option => (
                         <motion.div
                           key={option.id}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => handlePsychologicalAnswer(q.id, option.id)}
-                          className={`p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                          className={`p-2 sm:p-3 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${
                             formData.psychologicalProfile[q.id] === option.id
                               ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                               : 'border-border hover:border-amber-300'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{option.icon}</span>
-                            <span className="font-medium text-xs md:text-sm">{option.label}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="text-base sm:text-lg">{option.icon}</span>
+                            <span className="font-medium text-[10px] sm:text-xs md:text-sm">{option.label}</span>
                           </div>
                         </motion.div>
                       ))}
@@ -483,23 +483,23 @@ export default function Onboarding() {
 
             {/* Paso 3: ¿Qué buscas cuando lees? */}
             {step === 3 && (
-              <div className="space-y-3 flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2 sm:space-y-3 flex-1">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   {localizedContent.readingGoals.map(goal => (
                     <motion.div
                       key={goal.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleMultiSelect('readingGoals', goal.id)}
-                      className={`p-4 md:p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                      className={`p-3 sm:p-4 md:p-5 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${
                         formData.readingGoals.includes(goal.id)
                           ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                           : 'border-border hover:border-amber-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{goal.icon}</span>
-                        <span className="font-medium text-sm md:text-base">{goal.label}</span>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-xl sm:text-2xl">{goal.icon}</span>
+                        <span className="font-medium text-xs sm:text-sm md:text-base">{goal.label}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -509,25 +509,25 @@ export default function Onboarding() {
 
             {/* Paso 4: Tipo de lector */}
             {step === 4 && (
-              <div className="space-y-3 flex-1">
-                <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-2 sm:space-y-3 flex-1">
+                <div className="grid grid-cols-1 gap-2 sm:gap-3">
                   {localizedContent.readerTypes.map(type => (
                     <motion.div
                       key={type.id}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                       onClick={() => setFormData(prev => ({ ...prev, readerType: type.id }))}
-                      className={`p-4 md:p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                      className={`p-3 sm:p-4 md:p-5 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${
                         formData.readerType === type.id
                           ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                           : 'border-border hover:border-amber-300'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl">{type.icon}</span>
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <span className="text-xl sm:text-2xl">{type.icon}</span>
                         <div>
-                          <span className="font-semibold text-sm md:text-base block">{type.label}</span>
-                          <span className="text-xs md:text-sm text-muted-foreground">{type.desc}</span>
+                          <span className="font-semibold text-xs sm:text-sm md:text-base block">{type.label}</span>
+                          <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">{type.desc}</span>
                         </div>
                       </div>
                     </motion.div>
@@ -538,23 +538,23 @@ export default function Onboarding() {
 
             {/* Paso 5: Tipo de historias */}
             {step === 5 && (
-              <div className="space-y-3 flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2 sm:space-y-3 flex-1">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   {localizedContent.storyVibes.map(vibe => (
                     <motion.div
                       key={vibe.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleMultiSelect('storyVibes', vibe.id)}
-                      className={`p-4 md:p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                      className={`p-3 sm:p-4 md:p-5 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all ${
                         formData.storyVibes.includes(vibe.id)
                           ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                           : 'border-border hover:border-amber-300'
                       }`}
                     >
                       <div>
-                        <span className="font-semibold text-sm md:text-base block">{vibe.label}</span>
-                        <span className="text-xs md:text-sm text-muted-foreground">{vibe.desc}</span>
+                        <span className="font-semibold text-xs sm:text-sm md:text-base block">{vibe.label}</span>
+                        <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground">{vibe.desc}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -564,52 +564,52 @@ export default function Onboarding() {
 
             {/* Paso 6: Idioma y libro favorito */}
             {step === 6 && (
-              <div className="space-y-6 flex-1">
+              <div className="space-y-4 sm:space-y-6 flex-1">
                 <div>
-                  <Label className="text-base md:text-lg font-semibold block mb-3">
+                  <Label className="text-sm sm:text-base md:text-lg font-semibold block mb-2 sm:mb-3">
                     {localizedContent.steps.step6Title}
                   </Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {LANGUAGES.map(lang => (
                       <motion.div
                         key={lang.code}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setFormData(prev => ({ ...prev, language: lang.code }))}
-                        className={`p-3 md:p-4 border-2 rounded-xl cursor-pointer transition-all text-center ${
+                        className={`p-2 sm:p-3 md:p-4 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all text-center ${
                           formData.language === lang.code
                             ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm'
                             : 'border-border hover:border-amber-300'
                         }`}
                       >
-                        <span className="text-xl mb-1 block">{lang.flag}</span>
-                        <span className="font-medium text-xs md:text-sm">{lang.name}</span>
+                        <span className="text-lg sm:text-xl mb-0.5 sm:mb-1 block">{lang.flag}</span>
+                        <span className="font-medium text-[10px] sm:text-xs md:text-sm">{lang.name}</span>
                       </motion.div>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-base md:text-lg font-semibold block mb-3">
+                  <Label className="text-sm sm:text-base md:text-lg font-semibold block mb-2 sm:mb-3">
                     {localizedContent.steps.favoriteBookLabel}
                   </Label>
                   <Textarea
                     placeholder={localizedContent.steps.favoriteBookPlaceholder}
                     value={formData.favoriteBook}
                     onChange={(e) => setFormData(prev => ({ ...prev, favoriteBook: e.target.value }))}
-                    className="text-sm md:text-base p-4 rounded-xl border-2 min-h-[100px] resize-none"
+                    className="text-xs sm:text-sm md:text-base p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 min-h-[80px] sm:min-h-[100px] resize-none"
                   />
                 </div>
               </div>
             )}
 
             {/* Navigation buttons */}
-            <div className="flex gap-3 md:gap-4 mt-6 pt-4 border-t border-border">
+            <div className="flex gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-border">
               {step > 1 && (
                 <Button
                   variant="outline"
                   onClick={() => setStep(step - 1)}
-                  className="flex-1 rounded-full py-5 text-sm"
+                  className="flex-1 rounded-full py-4 sm:py-5 text-xs sm:text-sm"
                   size="default"
                 >
                   {localizedContent.steps.back}
@@ -618,7 +618,7 @@ export default function Onboarding() {
               {step < totalSteps ? (
                 <Button
                   onClick={() => setStep(step + 1)}
-                  className="flex-1 rounded-full py-5 text-sm bg-amber-600 hover:bg-amber-700 text-white"
+                  className="flex-1 rounded-full py-4 sm:py-5 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
                   size="default"
                   disabled={
                     (step === 1 && formData.genres.length === 0) ||
@@ -632,7 +632,7 @@ export default function Onboarding() {
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  className="flex-1 rounded-full py-5 text-sm bg-amber-600 hover:bg-amber-700 text-white"
+                  className="flex-1 rounded-full py-4 sm:py-5 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
                   size="default"
                 >
                   {localizedContent.steps.finish} ✨

@@ -485,24 +485,24 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <main className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <div className="mb-6 md:mb-8 text-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Descubre tu próximo libro</h1>
-            <p className="text-muted-foreground text-sm">{user.email}</p>
+          <div className="mb-4 sm:mb-6 md:mb-8 text-center">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-1">Descubre tu próximo libro</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">{user.email}</p>
           </div>
 
           {/* Learning Progress */}
           <LearningProgress />
 
           {/* Reveal Books Section */}
-          <Card className="shadow-lg border-0 bg-gradient-to-br from-card via-card to-amber-50/20 dark:to-amber-950/10 mb-8 overflow-hidden">
-            <CardContent className="py-10 px-6">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-card via-card to-amber-50/20 dark:to-amber-950/10 mb-6 sm:mb-8 overflow-hidden">
+            <CardContent className="py-6 sm:py-10 px-4 sm:px-6">
               {/* First Time User Help */}
               {showFirstTimeHelp && books.length === 0 && !isRevealing && (
                 <Alert className="mb-8 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200/50 dark:border-amber-800/30">
@@ -551,7 +551,7 @@ export default function Profile() {
                         disabled={isRevealing}
                         size="lg"
                         className={`
-                          text-base px-12 py-7 rounded-full shadow-xl hover:shadow-2xl 
+                          text-sm sm:text-base px-8 sm:px-12 py-5 sm:py-7 rounded-full shadow-xl hover:shadow-2xl 
                           transition-all duration-300 bg-gradient-to-r from-amber-500 to-orange-600 
                           hover:from-amber-600 hover:to-orange-700 text-white hover:scale-105 
                           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 group
@@ -613,7 +613,7 @@ export default function Profile() {
                   </div>
                   
                   {/* 3 Book Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 max-w-5xl mx-auto px-2 sm:px-0">
                     {books.slice(0, 3).map((book, index) => (
                       <BookRecommendationCard
                         key={book.id}
@@ -629,80 +629,80 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="library" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
-              <TabsTrigger value="library" className="flex items-center gap-1.5 py-2.5 text-xs sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400">
-                <Library className="w-4 h-4" />
-                <span className="hidden sm:inline">Mi Biblioteca</span>
+          <Tabs defaultValue="library" className="space-y-4 sm:space-y-6">
+            <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
+              <TabsTrigger value="library" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
+                <Library className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Biblioteca</span>
               </TabsTrigger>
-              <TabsTrigger value="toRead" className="flex items-center gap-1.5 py-2.5 text-xs sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400">
-                <BookMarked className="w-4 h-4" />
-                <span className="hidden sm:inline">Por Leer</span>
+              <TabsTrigger value="toRead" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
+                <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Por Leer</span>
               </TabsTrigger>
-              <TabsTrigger value="preferences" className="flex items-center gap-1.5 py-2.5 text-xs sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400">
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Ajustes</span>
+              <TabsTrigger value="preferences" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Ajustes</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-1.5 py-2.5 text-xs sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400">
-                <BookOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">Historial</span>
+              <TabsTrigger value="history" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
+                <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Historial</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="library">
               <Card className="shadow-md border border-border">
-                <CardHeader className="pb-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
-                      <CardTitle className="text-xl md:text-2xl font-bold">Libros que he leído</CardTitle>
-                      <CardDescription className="text-sm mt-1">
+                      <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Libros que he leído</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm mt-1">
                         Agrega libros para mejorar tus recomendaciones
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full bg-amber-600 hover:bg-amber-700">
-                        <Plus className="w-4 h-4 mr-1.5" />
+                      <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full bg-amber-600 hover:bg-amber-700 text-xs sm:text-sm">
+                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
                         Agregar
                       </Button>
-                      <Button onClick={() => setShowScanner(true)} size="sm" variant="outline" className="rounded-full">
-                        <ScanBarcode className="w-4 h-4 mr-1.5" />
+                      <Button onClick={() => setShowScanner(true)} size="sm" variant="outline" className="rounded-full text-xs sm:text-sm">
+                        <ScanBarcode className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
                         <span className="hidden sm:inline">Escanear</span>
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
                   {(!user.library || user.library.length === 0) ? (
-                    <div className="text-center py-16 md:py-20">
-                      <Library className="w-20 h-20 text-muted-foreground/30 mx-auto mb-4" />
-                      <p className="text-foreground/80 text-lg mb-2">No books added yet</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="text-center py-12 sm:py-16 md:py-20">
+                      <Library className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground/30 mx-auto mb-3 sm:mb-4" />
+                      <p className="text-foreground/80 text-base sm:text-lg mb-2">No books added yet</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground px-4">
                         Add books you've read to help THOTH recommend better matches
                       </p>
                     </div>
                   ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                       {user.library.map((book, index) => (
                         <motion.div
                           key={`${book.id}-${index}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
+                          className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-lg transition-all group"
                         >
-                          <div className="bg-muted p-6 flex items-center justify-center min-h-[240px]">
+                          <div className="bg-muted p-4 sm:p-6 flex items-center justify-center min-h-[180px] sm:min-h-[240px]">
                             <img
                               src={book.cover}
                               alt={book.title}
-                              className="w-full max-w-[140px] h-auto shadow-lg rounded-sm group-hover:scale-105 transition-transform"
+                              className="w-full max-w-[100px] sm:max-w-[140px] h-auto shadow-lg rounded-sm group-hover:scale-105 transition-transform"
                             />
                           </div>
-                          <div className="p-4 space-y-3">
+                          <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                             <div>
-                              <h3 className="font-bold text-foreground line-clamp-2 leading-tight mb-1">
+                              <h3 className="font-bold text-foreground line-clamp-2 leading-tight mb-1 text-sm sm:text-base">
                                 {book.title}
                               </h3>
-                              <p className="text-sm text-muted-foreground">by {book.author}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">by {book.author}</p>
                             </div>
                             
                             {book.rating && (
@@ -718,21 +718,21 @@ export default function Profile() {
                               </div>
                             )}
                             
-                            <div className="flex gap-2 pt-2">
+                            <div className="flex gap-1.5 sm:gap-2 pt-1 sm:pt-2">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEditBook(book)}
-                                className="flex-1 rounded-full"
+                                className="flex-1 rounded-full text-xs sm:text-sm py-1.5 sm:py-2"
                               >
-                                <Edit className="w-3 h-3 mr-1" />
-                                Edit
+                                <Edit className="w-3 h-3 mr-0.5 sm:mr-1" />
+                                <span className="hidden xs:inline">Edit</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleRemoveBook(book.id)}
-                                className="rounded-full"
+                                className="rounded-full px-2 sm:px-3"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
@@ -748,43 +748,43 @@ export default function Profile() {
 
             <TabsContent value="toRead">
               <Card className="shadow-md border border-border">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl md:text-2xl font-bold">Lista de Lectura</CardTitle>
-                  <CardDescription className="text-sm">
+                <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Lista de Lectura</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Libros que quieres leer de las recomendaciones
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-4 sm:px-6">
                   {(!user.toRead || user.toRead.length === 0) ? (
-                    <div className="text-center py-12">
-                      <BookMarked className="w-16 h-16 text-muted-foreground/30 mx-auto mb-3" />
-                      <p className="text-foreground/80 mb-1">Sin libros en tu lista</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="text-center py-10 sm:py-12">
+                      <BookMarked className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/30 mx-auto mb-2 sm:mb-3" />
+                      <p className="text-foreground/80 text-sm sm:text-base mb-1">Sin libros en tu lista</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground px-4">
                         Guarda libros de las recomendaciones para agregarlos aquí
                       </p>
                     </div>
                   ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                       {user.toRead.map((book, index) => (
                         <motion.div
                           key={`${book.id}-${index}`}
                           initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.03 }}
-                          className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-all group"
+                          className="bg-card border border-border rounded-lg sm:rounded-xl overflow-hidden hover:shadow-md transition-all group"
                         >
-                          <div className="bg-gradient-to-b from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-4 flex items-center justify-center min-h-[200px] relative">
+                          <div className="bg-gradient-to-b from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-3 sm:p-4 flex items-center justify-center min-h-[160px] sm:min-h-[200px] relative">
                             {/* Compatibility Score Badge */}
                             {book.compatibilityScore !== undefined && (
-                              <div className="absolute top-2 right-2 z-10">
+                              <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
                                 <div className={`
-                                  flex items-center gap-1 px-2 py-1 rounded-full font-bold text-xs shadow-md
+                                  flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-bold text-[10px] sm:text-xs shadow-md
                                   ${book.compatibilityScore >= 85 ? 'bg-green-500 text-white' : 
                                     book.compatibilityScore >= 70 ? 'bg-emerald-500 text-white' :
                                     book.compatibilityScore >= 55 ? 'bg-yellow-500 text-white' :
                                     'bg-orange-500 text-white'}
                                 `}>
-                                  <span>
+                                  <span className="text-[10px] sm:text-xs">
                                     {book.compatibilityScore >= 85 ? '🔥' : 
                                      book.compatibilityScore >= 70 ? '✨' :
                                      book.compatibilityScore >= 55 ? '👍' : '🤔'}
@@ -796,77 +796,79 @@ export default function Profile() {
                             <img
                               src={book.cover}
                               alt={book.title}
-                              className="w-full max-w-[140px] h-auto shadow-lg rounded-sm group-hover:scale-105 transition-transform"
+                              className="w-full max-w-[100px] sm:max-w-[140px] h-auto shadow-lg rounded-sm group-hover:scale-105 transition-transform"
                             />
                           </div>
-                          <div className="p-4 space-y-3">
+                          <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                             <div>
-                              <h3 className="font-bold text-foreground line-clamp-2 leading-tight mb-1 text-sm">
+                              <h3 className="font-bold text-foreground line-clamp-2 leading-tight mb-1 text-xs sm:text-sm">
                                 {book.title}
                               </h3>
-                              <p className="text-xs text-muted-foreground">por {book.author}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">por {book.author}</p>
                             </div>
                             
                             {book.aiReasoning && (
-                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-lg p-2">
-                                <p className="text-[10px] text-muted-foreground line-clamp-2">
+                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-lg p-1.5 sm:p-2">
+                                <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-2">
                                   {book.aiReasoning}
                                 </p>
                               </div>
                             )}
                             
                             {/* Amazon Buy Buttons */}
-                            <div className="flex gap-1.5">
+                            <div className="flex gap-1 sm:gap-1.5">
                               <Button
                                 asChild
                                 size="sm"
-                                className="flex-1 rounded-full text-xs h-9 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md"
+                                className="flex-1 rounded-full text-[10px] sm:text-xs h-7 sm:h-9 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md"
                               >
                                 <a
                                   href={getAmazonLink(book.isbn, book.title, book.author)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
-                                  className="flex items-center justify-center gap-1"
+                                  className="flex items-center justify-center gap-0.5 sm:gap-1"
                                 >
-                                  <ShoppingCart className="w-3 h-3" />
-                                  {t('book.buyOn')}
+                                  <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                  <span className="hidden xs:inline">{t('book.buyOn')}</span>
+                                  <span className="xs:hidden">Amazon</span>
                                 </a>
                               </Button>
                               <Button
                                 asChild
                                 size="sm"
                                 variant="outline"
-                                className="rounded-full text-xs h-9 px-3 border-amber-500/30 text-amber-600"
+                                className="rounded-full text-[10px] sm:text-xs h-7 sm:h-9 px-2 sm:px-3 border-amber-500/30 text-amber-600"
                               >
                                 <a
                                   href={getKindleLink(book.isbn, book.title, book.author)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={() => trackAmazonClick(user?.id, book.id, book.title)}
-                                  className="flex items-center justify-center gap-1"
+                                  className="flex items-center justify-center gap-0.5 sm:gap-1"
                                 >
-                                  <Tablet className="w-3 h-3" />
+                                  <Tablet className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                 </a>
                               </Button>
                             </div>
                             
-                            <div className="flex gap-2 pt-1">
+                            <div className="flex gap-1.5 sm:gap-2 pt-0.5 sm:pt-1">
                               <Button
                                 size="sm"
                                 onClick={() => handleMoveToRead(book.id)}
-                                className="flex-1 rounded-full text-xs h-8 bg-amber-600 hover:bg-amber-700"
+                                className="flex-1 rounded-full text-[10px] sm:text-xs h-6 sm:h-8 bg-amber-600 hover:bg-amber-700"
                               >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Leído
+                                <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                                <span className="hidden xs:inline">Leído</span>
+                                <span className="xs:hidden">✓</span>
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleRemoveFromToRead(book.id)}
-                                className="rounded-full h-8 w-8 p-0"
+                                className="rounded-full h-6 sm:h-8 w-6 sm:w-8 p-0"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                               </Button>
                             </div>
                           </div>
@@ -880,18 +882,18 @@ export default function Profile() {
 
             <TabsContent value="preferences">
               <Card className="shadow-md border border-border">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-bold">Preferencias de Lectura</CardTitle>
-                  <CardDescription className="text-sm">
+                <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                  <CardTitle className="text-lg sm:text-xl font-bold">Preferencias de Lectura</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Actualiza tus preferencias para mejores recomendaciones
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Géneros Favoritos</Label>
-                    <div className="grid grid-cols-2 gap-2">
+                <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6">
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label className="text-xs sm:text-sm font-medium">Géneros Favoritos</Label>
+                    <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                       {GENRES.map(genre => (
-                        <div key={genre} className="flex items-center space-x-2">
+                        <div key={genre} className="flex items-center space-x-1.5 sm:space-x-2">
                           <Checkbox
                             id={`pref-${genre}`}
                             checked={selectedGenres.includes(genre)}

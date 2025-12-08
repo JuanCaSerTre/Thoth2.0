@@ -110,44 +110,44 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
           )}
 
           {/* Book Cover & Info */}
-          <div className="flex gap-4 p-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4">
             {/* Cover */}
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0 flex justify-center sm:justify-start">
               <div className="relative overflow-hidden rounded-lg shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 {book.cover ? (
                   <img
                     src={book.cover}
                     alt={book.title}
-                    className="w-[100px] h-[150px] object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-[80px] h-[120px] sm:w-[100px] sm:h-[150px] object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-[100px] h-[150px] bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
-                    <BookOpen className="w-10 h-10 text-amber-600/40" />
+                  <div className="w-[80px] h-[120px] sm:w-[100px] sm:h-[150px] bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
+                    <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-amber-600/40" />
                   </div>
                 )}
               </div>
             </div>
 
             {/* Info */}
-            <div className="flex-1 min-w-0 flex flex-col">
-              <h3 className="font-bold text-foreground text-base leading-tight line-clamp-2 mb-1.5 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+            <div className="flex-1 min-w-0 flex flex-col text-center sm:text-left">
+              <h3 className="font-bold text-foreground text-sm sm:text-base leading-tight line-clamp-2 mb-1 sm:mb-1.5 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                 {book.title}
               </h3>
               
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5 mb-3">
-                <User className="w-3.5 h-3.5 flex-shrink-0" />
+              <p className="text-xs sm:text-sm text-muted-foreground flex items-center justify-center sm:justify-start gap-1.5 mb-2 sm:mb-3">
+                <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
                 <span className="truncate">{book.author}</span>
               </p>
               
               {/* Categories */}
               {book.categories && book.categories.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-1 sm:gap-1.5 mb-2 sm:mb-3">
                   {book.categories.slice(0, 2).map((cat, i) => (
                     <Badge 
                       key={i} 
                       variant="secondary" 
-                      className="text-[10px] px-2 py-0.5 bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0"
+                      className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 bg-amber-100/50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0"
                     >
                       {cat}
                     </Badge>
@@ -156,7 +156,7 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
               )}
 
               {/* Meta Info */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
+              <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground mt-auto">
                 {book.averageRating && (
                   <TooltipProvider>
                     <Tooltip>
@@ -208,23 +208,23 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
 
           {/* AI Reasoning */}
           {book.aiReasoning && (
-            <div className="px-4 pb-3">
-              <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/40 rounded-xl p-3.5 border border-amber-200/30 dark:border-amber-800/20">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
+            <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-amber-950/40 dark:to-orange-950/40 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 border border-amber-200/30 dark:border-amber-800/20">
+                <div className="flex items-start gap-2 sm:gap-2.5">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                    <p className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5 sm:mb-1">
                       ¿Por qué THOTH lo eligió para ti?
                     </p>
-                    <p className="text-xs text-foreground/80 leading-relaxed">
+                    <p className="text-[10px] sm:text-xs text-foreground/80 leading-relaxed line-clamp-3 sm:line-clamp-none">
                       {book.aiReasoning}
                     </p>
                     {book.aiFocusArea && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <Tag className="w-3 h-3 text-amber-600/60" />
-                        <span className="text-[10px] text-muted-foreground font-medium">
+                      <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
+                        <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-600/60" />
+                        <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">
                           {book.aiFocusArea}
                         </span>
                       </div>
@@ -236,69 +236,70 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
           )}
 
           {/* Description */}
-          <div className="px-4 pb-4 flex-1">
-            <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+          <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3 leading-relaxed">
               {book.description || 'Sin descripción disponible.'}
             </p>
           </div>
 
           {/* Actions */}
-          <div className="px-4 pb-4 mt-auto space-y-3">
+          <div className="px-3 sm:px-4 pb-3 sm:pb-4 mt-auto space-y-2 sm:space-y-3">
             {/* Amazon Buy Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 sm:gap-2">
               <Button
                 asChild
                 size="sm"
-                className="flex-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-5"
+                className="flex-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-4 sm:py-5 text-xs sm:text-sm"
               >
                 <a
                   href={amazonUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleAmazonClick}
-                  className="flex items-center justify-center gap-1.5"
+                  className="flex items-center justify-center gap-1 sm:gap-1.5"
                 >
-                  <ShoppingCart className="w-4 h-4" />
-                  {t('book.buyOn')}
+                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{t('book.buyOn')}</span>
+                  <span className="xs:hidden">Amazon</span>
                 </a>
               </Button>
               <Button
                 asChild
                 size="sm"
                 variant="outline"
-                className="rounded-full border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 py-5 px-4"
+                className="rounded-full border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 py-4 sm:py-5 px-3 sm:px-4 text-xs sm:text-sm"
               >
                 <a
                   href={kindleUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleAmazonClick}
-                  className="flex items-center justify-center gap-1.5"
+                  className="flex items-center justify-center gap-1 sm:gap-1.5"
                 >
-                  <Tablet className="w-4 h-4" />
-                  eBook
+                  <Tablet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">eBook</span>
                 </a>
               </Button>
             </div>
 
             {/* Secondary Action Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 sm:gap-2">
               <Button
                 onClick={() => onDislike(book)}
                 variant="outline"
                 size="sm"
-                className="flex-1 rounded-full border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 transition-all duration-200"
+                className="flex-1 rounded-full border-muted-foreground/20 text-muted-foreground hover:bg-muted/50 transition-all duration-200 py-3 sm:py-4 text-xs sm:text-sm"
               >
-                <X className="w-4 h-4 mr-1.5" />
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
                 {t('common.skip')}
               </Button>
               <Button
                 onClick={() => onLike(book)}
                 variant="outline"
                 size="sm"
-                className="flex-1 rounded-full border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all duration-200"
+                className="flex-1 rounded-full border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all duration-200 py-3 sm:py-4 text-xs sm:text-sm"
               >
-                <BookmarkPlus className="w-4 h-4 mr-1.5" />
+                <BookmarkPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
                 {t('common.save')}
               </Button>
             </div>

@@ -192,26 +192,26 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <Navigation />
       
-      <main className="max-w-md mx-auto px-6 py-16">
+      <main className="max-w-md mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
           <Card className="shadow-xl border-0">
-            <CardHeader className="space-y-1 text-center pb-2">
-              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <BookOpen className="w-8 h-8 text-primary" />
+            <CardHeader className="space-y-1 text-center pb-2 px-4 sm:px-6">
+              <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               </div>
-              <CardTitle className="text-3xl font-serif font-bold">{c.title}</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className="text-2xl sm:text-3xl font-serif font-bold">{c.title}</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
                 {c.subtitle}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">{c.email}</Label>
+            <CardContent className="px-4 sm:px-6">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="email" className="text-sm">{c.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -221,13 +221,13 @@ export default function Register() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="pl-10"
+                      className="pl-10 text-sm sm:text-base"
                     />
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="password">{c.password}</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="password" className="text-sm">{c.password}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -238,13 +238,13 @@ export default function Register() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={6}
-                      className="pl-10"
+                      className="pl-10 text-sm sm:text-base"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{c.confirmPassword}</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm">{c.confirmPassword}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -255,14 +255,14 @@ export default function Register() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       minLength={6}
-                      className="pl-10"
+                      className="pl-10 text-sm sm:text-base"
                     />
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full rounded-full py-6 text-base font-medium group"
+                  className="w-full rounded-full py-5 sm:py-6 text-sm sm:text-base font-medium group"
                   disabled={isLoading}
                 >
                   {isLoading ? c.creating : (
@@ -274,7 +274,7 @@ export default function Register() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center text-sm">
+              <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm">
                 <span className="text-muted-foreground">{c.hasAccount} </span>
                 <Link to="/login" className="text-primary font-medium hover:underline">
                   {c.login}
