@@ -104,6 +104,7 @@ interface DislikedBook {
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, preferences: User['preferences']) => Promise<void>;
   logout: () => void;
@@ -123,12 +124,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         loadUserData(session.user.id);
+      } else {
+        setIsLoading(false);
       }
     });
 
@@ -138,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loadUserData(session.user.id);
       } else {
         setUser(null);
+        setIsLoading(false);
       }
     });
 
@@ -254,9 +259,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dislikedAt: d.disliked_at
           })) || []
         });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+      setIsLoading(false);
     }
   };
 
@@ -566,6 +573,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
+      isLoading,
       login, 
       register, 
       logout, 

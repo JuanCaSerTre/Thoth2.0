@@ -7,8 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Link, Navigate } from 'react-router-dom';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { t, language } = useLocalization();
+
+  // Wait for auth to load before checking onboarding status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        </div>
+      </div>
+    );
+  }
 
   // Redirect to onboarding if user hasn't completed it
   if (user && !user.preferences?.onboardingCompleted) {
