@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, BookOpen, Target, Flame, Zap, Crown, Rocket } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
 export default function LearningProgress() {
   const { user } = useAuth();
+  const { t } = useLocalization();
 
   if (!user) return null;
 
@@ -133,7 +135,7 @@ export default function LearningProgress() {
 
           {readerData.next && (
             <p className="text-[10px] sm:text-xs text-muted-foreground text-right mb-3 sm:mb-4">
-              <span className="font-semibold text-foreground">{readerData.next - totalInteractions}</span> para el siguiente nivel
+              <span className="font-semibold text-foreground">{readerData.next - totalInteractions}</span> {t('progress.toNextLevel')}
             </p>
           )}
 
@@ -146,7 +148,7 @@ export default function LearningProgress() {
                 <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                 <span className="text-lg sm:text-xl font-bold text-green-600">{likedCount}</span>
               </div>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Guardados</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">{t('progress.saved')}</p>
             </motion.div>
             <motion.div 
               className="text-center p-2 sm:p-3 bg-red-50 dark:bg-red-950/20 rounded-lg sm:rounded-xl border border-red-200/30 dark:border-red-800/20"
@@ -156,7 +158,7 @@ export default function LearningProgress() {
                 <Target className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
                 <span className="text-lg sm:text-xl font-bold text-red-600">{dislikedCount}</span>
               </div>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Pasados</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">{t('progress.skipped')}</p>
             </motion.div>
             <motion.div 
               className="text-center p-2 sm:p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg sm:rounded-xl border border-amber-200/30 dark:border-amber-800/20"
@@ -166,7 +168,7 @@ export default function LearningProgress() {
                 <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
                 <span className="text-lg sm:text-xl font-bold text-amber-600">{libraryCount}</span>
               </div>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Leídos</p>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">{t('progress.read')}</p>
             </motion.div>
           </div>
 

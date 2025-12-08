@@ -216,7 +216,7 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5 sm:mb-1">
-                      ¿Por qué THOTH lo eligió para ti?
+                      {t('book.whyChosen')}
                     </p>
                     <p className="text-[10px] sm:text-xs text-foreground/80 leading-relaxed line-clamp-3 sm:line-clamp-none">
                       {book.aiReasoning}
@@ -238,7 +238,7 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
           {/* Description */}
           <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex-1">
             <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-2 sm:line-clamp-3 leading-relaxed">
-              {book.description || 'Sin descripción disponible.'}
+              {book.description || t('book.noDescription')}
             </p>
           </div>
 

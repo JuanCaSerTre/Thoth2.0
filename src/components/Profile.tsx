@@ -284,16 +284,16 @@ export default function Profile() {
 
       addToLibrary(bookData);
       toast({
-        title: '¡Libro agregado!',
-        description: `${bookData.title} ha sido marcado como leído.`
+        title: t('toast.bookAdded'),
+        description: `${bookData.title}`
       });
       setShowAddDialog(false);
       setSearchQuery('');
       setSearchResults([]);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo agregar el libro',
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('toast.errorOccurred'),
         variant: 'destructive'
       });
     } finally {
@@ -320,15 +320,15 @@ export default function Profile() {
         status: 'read'
       });
       toast({
-        title: '¡Libro agregado!',
-        description: `${bookData.title} ha sido marcado como leído.`
+        title: t('toast.bookAdded'),
+        description: `${bookData.title}`
       });
       setShowAddDialog(false);
       setManualISBN('');
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo agregar el libro',
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('toast.errorOccurred'),
         variant: 'destructive'
       });
     } finally {
@@ -407,21 +407,21 @@ export default function Profile() {
           status: 'read'
         });
         toast({
-          title: '¡Libro agregado!',
-          description: `${bookData.title} ha sido marcado como leído.`
+          title: t('toast.bookAdded'),
+          description: `${bookData.title}`
         });
       } catch (libraryError) {
         // Book already exists in library
         toast({
-          title: 'Libro ya existe',
-          description: `${bookData.title} ya está en tu biblioteca.`,
+          title: t('toast.bookExists'),
+          description: `${bookData.title}`,
           variant: 'default'
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo agregar el libro',
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('toast.errorOccurred'),
         variant: 'destructive'
       });
     } finally {
@@ -493,7 +493,7 @@ export default function Profile() {
         >
           {/* Header */}
           <div className="mb-4 sm:mb-6 md:mb-8 text-center">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-1">Descubre tu próximo libro</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-1">{t('profile.discoverNext')}</h1>
             <p className="text-muted-foreground text-xs sm:text-sm">{user.email}</p>
           </div>
 
@@ -633,19 +633,19 @@ export default function Profile() {
             <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
               <TabsTrigger value="library" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
                 <Library className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Biblioteca</span>
+                <span className="hidden xs:inline sm:inline">{t('profile.library')}</span>
               </TabsTrigger>
               <TabsTrigger value="toRead" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
                 <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Por Leer</span>
+                <span className="hidden xs:inline sm:inline">{t('profile.toRead')}</span>
               </TabsTrigger>
               <TabsTrigger value="preferences" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
                 <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Ajustes</span>
+                <span className="hidden xs:inline sm:inline">{t('profile.settings')}</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 text-[10px] sm:text-sm data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-400 rounded-lg">
                 <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Historial</span>
+                <span className="hidden xs:inline sm:inline">{t('profile.historyTab')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -654,19 +654,19 @@ export default function Profile() {
                 <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
                   <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
-                      <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Libros que he leído</CardTitle>
+                      <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">{t('profile.booksRead')}</CardTitle>
                       <CardDescription className="text-xs sm:text-sm mt-1">
-                        Agrega libros para mejorar tus recomendaciones
+                        {t('profile.addBooksDesc')}
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={() => setShowAddDialog(true)} size="sm" className="rounded-full bg-amber-600 hover:bg-amber-700 text-xs sm:text-sm">
                         <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
-                        Agregar
+                        {t('profile.add')}
                       </Button>
                       <Button onClick={() => setShowScanner(true)} size="sm" variant="outline" className="rounded-full text-xs sm:text-sm">
                         <ScanBarcode className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
-                        <span className="hidden sm:inline">Escanear</span>
+                        <span className="hidden sm:inline">{t('profile.scan')}</span>
                       </Button>
                     </div>
                   </div>
@@ -675,9 +675,9 @@ export default function Profile() {
                   {(!user.library || user.library.length === 0) ? (
                     <div className="text-center py-12 sm:py-16 md:py-20">
                       <Library className="w-16 h-16 sm:w-20 sm:h-20 text-muted-foreground/30 mx-auto mb-3 sm:mb-4" />
-                      <p className="text-foreground/80 text-base sm:text-lg mb-2">No books added yet</p>
+                      <p className="text-foreground/80 text-base sm:text-lg mb-2">{t('profile.noBooksYet')}</p>
                       <p className="text-xs sm:text-sm text-muted-foreground px-4">
-                        Add books you've read to help THOTH recommend better matches
+                        {t('profile.addBooksHelp')}
                       </p>
                     </div>
                   ) : (
@@ -749,18 +749,18 @@ export default function Profile() {
             <TabsContent value="toRead">
               <Card className="shadow-md border border-border">
                 <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-                  <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Lista de Lectura</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">{t('profile.readingList')}</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Libros que quieres leer de las recomendaciones
+                    {t('profile.readingListDesc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-4 sm:px-6">
                   {(!user.toRead || user.toRead.length === 0) ? (
                     <div className="text-center py-10 sm:py-12">
                       <BookMarked className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/30 mx-auto mb-2 sm:mb-3" />
-                      <p className="text-foreground/80 text-sm sm:text-base mb-1">Sin libros en tu lista</p>
+                      <p className="text-foreground/80 text-sm sm:text-base mb-1">{t('profile.noReadingList')}</p>
                       <p className="text-[10px] sm:text-xs text-muted-foreground px-4">
-                        Guarda libros de las recomendaciones para agregarlos aquí
+                        {t('profile.saveFromRecs')}
                       </p>
                     </div>
                   ) : (
@@ -859,7 +859,7 @@ export default function Profile() {
                                 className="flex-1 rounded-full text-[10px] sm:text-xs h-6 sm:h-8 bg-amber-600 hover:bg-amber-700"
                               >
                                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-                                <span className="hidden xs:inline">Leído</span>
+                                <span className="hidden xs:inline">{t('profile.markRead')}</span>
                                 <span className="xs:hidden">✓</span>
                               </Button>
                               <Button
@@ -883,14 +883,14 @@ export default function Profile() {
             <TabsContent value="preferences">
               <Card className="shadow-md border border-border">
                 <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-                  <CardTitle className="text-lg sm:text-xl font-bold">Preferencias de Lectura</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl font-bold">{t('profile.readingPrefs')}</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    Actualiza tus preferencias para mejores recomendaciones
+                    {t('profile.updatePrefsDesc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6">
                   <div className="space-y-2 sm:space-y-3">
-                    <Label className="text-xs sm:text-sm font-medium">Géneros Favoritos</Label>
+                    <Label className="text-xs sm:text-sm font-medium">{t('profile.favoriteGenres')}</Label>
                     <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                       {GENRES.map(genre => (
                         <div key={genre} className="flex items-center space-x-1.5 sm:space-x-2">

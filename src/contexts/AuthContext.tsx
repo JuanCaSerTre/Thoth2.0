@@ -395,7 +395,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLibrary = user.library || [];
     const exists = currentLibrary.find(b => b.isbn === book.isbn);
     if (exists) {
-      throw new Error('El libro ya está en tu biblioteca');
+      throw new Error('Book already in library');
     }
 
     try {

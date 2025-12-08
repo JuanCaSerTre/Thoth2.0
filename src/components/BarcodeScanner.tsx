@@ -3,6 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useLocalization } from '@/contexts/LocalizationContext';
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScan }: BarcodeScann
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>('');
+  const { t } = useLocalization();
 
   useEffect(() => {
     if (!isOpen) {
@@ -111,7 +113,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScan }: BarcodeScann
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-serif">Escanear Código de Barras</DialogTitle>
+          <DialogTitle className="text-2xl font-serif">{t('scanner.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

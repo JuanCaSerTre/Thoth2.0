@@ -246,9 +246,9 @@ export default function Home() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 transition-transform">
               <Brain className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">IA que te conoce</h3>
+            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">{t('home.aiKnowsYou')}</h3>
             <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
-              Aprende de cada libro que evalúas para entender tu gusto único
+              {t('home.aiKnowsYouDesc')}
             </p>
           </div>
 
@@ -256,9 +256,9 @@ export default function Home() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-pink-500/20 to-pink-600/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 transition-transform">
               <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-pink-600" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">Explora y elige</h3>
+            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">{t('home.exploreChoose')}</h3>
             <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
-              Ve 3 recomendaciones personalizadas y guarda las que te interesen
+              {t('home.exploreChooseDesc')}
             </p>
           </div>
 
@@ -266,9 +266,9 @@ export default function Home() {
             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 transition-transform">
               <Percent className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">% de compatibilidad</h3>
+            <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 sm:mb-3">{t('home.compatibilityScore')}</h3>
             <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
-              Cada libro muestra qué tan compatible es con tu perfil lector
+              {t('home.compatibilityScoreDesc')}
             </p>
           </div>
         </motion.div>
@@ -281,10 +281,10 @@ export default function Home() {
           className="text-center max-w-4xl mx-auto mb-16 sm:mb-24 px-2"
         >
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-3 sm:mb-4">
-            Cómo Funciona
+            {t('home.howItWorks')}
           </h2>
           <p className="text-muted-foreground mb-8 sm:mb-12 text-sm sm:text-base">
-            3 pasos simples para encontrar tu próximo libro
+            {t('home.simpleSteps')}
           </p>
           
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
@@ -292,9 +292,9 @@ export default function Home() {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center mx-auto font-bold text-lg sm:text-xl mb-4 sm:mb-5 shadow-lg">
                 1
               </div>
-              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">Crea tu perfil</h4>
+              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">{t('home.createProfile')}</h4>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Responde preguntas sobre tus gustos y personalidad lectora
+                {t('home.createProfileDesc')}
               </p>
             </div>
             
@@ -302,9 +302,9 @@ export default function Home() {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center mx-auto font-bold text-lg sm:text-xl mb-4 sm:mb-5 shadow-lg">
                 2
               </div>
-              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">Elige tus favoritos</h4>
+              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">{t('home.chooseFavorites')}</h4>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Guarda los libros que te interesan. La IA aprende de cada decisión
+                {t('home.chooseFavoritesDesc')}
               </p>
             </div>
             
@@ -312,9 +312,9 @@ export default function Home() {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center mx-auto font-bold text-lg sm:text-xl mb-4 sm:mb-5 shadow-lg">
                 3
               </div>
-              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">Lee y repite</h4>
+              <h4 className="font-bold text-foreground mb-2 sm:mb-3 text-sm sm:text-base">{t('home.readRepeat')}</h4>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Marca libros como leídos y obtén recomendaciones cada vez mejores
+                {t('home.readRepeatDesc')}
               </p>
             </div>
           </div>
@@ -328,7 +328,7 @@ export default function Home() {
           className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200/30 dark:border-amber-800/20 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 max-w-3xl mx-auto mx-2 sm:mx-auto"
         >
           <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6 text-center">
-            ¿Por qué THOTH?
+            {t('home.whyThoth')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <div className="flex gap-3 sm:gap-4 items-start">
@@ -336,8 +336,8 @@ export default function Home() {
                 <span className="text-white text-xs sm:text-sm">✓</span>
               </div>
               <div>
-                <p className="font-semibold text-foreground text-sm sm:text-base">Sin parálisis de elección</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Solo 3 opciones perfectas</p>
+                <p className="font-semibold text-foreground text-sm sm:text-base">{t('home.noParalysis')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('home.onlyThreeOptions')}</p>
               </div>
             </div>
             <div className="flex gap-3 sm:gap-4 items-start">
@@ -345,8 +345,8 @@ export default function Home() {
                 <span className="text-white text-xs sm:text-sm">✓</span>
               </div>
               <div>
-                <p className="font-semibold text-foreground text-sm sm:text-base">IA que evoluciona</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Mejora con cada elección</p>
+                <p className="font-semibold text-foreground text-sm sm:text-base">{t('home.evolvingAI')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('home.improvesWithChoice')}</p>
               </div>
             </div>
             <div className="flex gap-3 sm:gap-4 items-start">
@@ -354,8 +354,8 @@ export default function Home() {
                 <span className="text-white text-xs sm:text-sm">✓</span>
               </div>
               <div>
-                <p className="font-semibold text-foreground text-sm sm:text-base">Perfil psicológico</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Entiende tu personalidad</p>
+                <p className="font-semibold text-foreground text-sm sm:text-base">{t('home.psychProfile')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('home.understandsYou')}</p>
               </div>
             </div>
             <div className="flex gap-3 sm:gap-4 items-start">
@@ -363,8 +363,8 @@ export default function Home() {
                 <span className="text-white text-xs sm:text-sm">✓</span>
               </div>
               <div>
-                <p className="font-semibold text-foreground text-sm sm:text-base">100% gratis</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Apóyanos comprando en Amazon</p>
+                <p className="font-semibold text-foreground text-sm sm:text-base">{t('home.freeForever')}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('home.supportAmazon')}</p>
               </div>
             </div>
           </div>
@@ -372,15 +372,14 @@ export default function Home() {
           {/* Support message */}
           <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-amber-200/30 dark:border-amber-800/20 text-center">
             <p className="text-[10px] sm:text-xs text-muted-foreground px-2">
-              💛 THOTH es gratis gracias a las comisiones de Amazon. Al comprar a través de nuestros enlaces, 
-              nos ayudas a seguir mejorando sin que te cueste nada extra.
+              {t('home.supportMessage')}
             </p>
           </div>
         </motion.div>
       </main>
       
       <footer className="text-center py-8 sm:py-10 text-muted-foreground text-xs sm:text-sm border-t border-border/50 mt-12 sm:mt-20 px-4">
-        <p>© 2025 THOTH · Descubre tu próximo libro favorito</p>
+        <p>{t('home.footer')}</p>
       </footer>
     </div>
   );

@@ -137,6 +137,65 @@ export const translations: Record<string, Record<string, string>> = {
     'toast.bookExists': 'Book already in library',
     'toast.preferencesUpdated': 'Preferences updated',
     'toast.errorOccurred': 'An error occurred',
+    
+    // Profile Page
+    'profile.discoverNext': 'Discover your next book',
+    'profile.booksRead': 'Books I\'ve read',
+    'profile.addBooksDesc': 'Add books to improve your recommendations',
+    'profile.add': 'Add',
+    'profile.scan': 'Scan',
+    'profile.noBooksYet': 'No books added yet',
+    'profile.addBooksHelp': 'Add books you\'ve read to help THOTH recommend better matches',
+    'profile.readingList': 'Reading List',
+    'profile.readingListDesc': 'Books you want to read from recommendations',
+    'profile.noReadingList': 'No books in your list',
+    'profile.saveFromRecs': 'Save books from recommendations to add them here',
+    'profile.readingPrefs': 'Reading Preferences',
+    'profile.updatePrefsDesc': 'Update your preferences for better recommendations',
+    'profile.favoriteGenres': 'Favorite Genres',
+    'profile.settings': 'Settings',
+    'profile.historyTab': 'History',
+    'profile.markRead': 'Read',
+    
+    // Learning Progress
+    'progress.saved': 'Saved',
+    'progress.skipped': 'Skipped',
+    'progress.read': 'Read',
+    'progress.toNextLevel': 'to next level',
+    
+    // Home Page
+    'home.howItWorks': 'How It Works',
+    'home.simpleSteps': '3 simple steps to find your next book',
+    'home.createProfile': 'Create your profile',
+    'home.createProfileDesc': 'Answer questions about your tastes and reading personality',
+    'home.chooseFavorites': 'Choose your favorites',
+    'home.chooseFavoritesDesc': 'Save books you like. AI learns from each decision',
+    'home.readRepeat': 'Read and repeat',
+    'home.readRepeatDesc': 'Mark books as read and get better recommendations',
+    'home.whyThoth': 'Why THOTH?',
+    'home.noParalysis': 'No choice paralysis',
+    'home.onlyThreeOptions': 'Only 3 perfect options',
+    'home.evolvingAI': 'Evolving AI',
+    'home.improvesWithChoice': 'Improves with each choice',
+    'home.psychProfile': 'Psychological profile',
+    'home.understandsYou': 'Understands your personality',
+    'home.freeForever': '100% free',
+    'home.supportAmazon': 'Support us by buying on Amazon',
+    'home.supportMessage': '💛 THOTH is free thanks to Amazon commissions. By buying through our links, you help us keep improving at no extra cost to you.',
+    'home.footer': '© 2025 THOTH · Discover your next favorite book',
+    'home.aiKnowsYou': 'AI that knows you',
+    'home.aiKnowsYouDesc': 'Learns from every book you rate to understand your unique taste',
+    'home.exploreChoose': 'Explore and choose',
+    'home.exploreChooseDesc': 'See 3 personalized recommendations and save the ones you like',
+    'home.compatibilityScore': '% compatibility',
+    'home.compatibilityScoreDesc': 'Each book shows how compatible it is with your reader profile',
+    
+    // Book Card
+    'book.whyChosen': 'Why THOTH chose this for you?',
+    'book.noDescription': 'No description available.',
+    
+    // Barcode Scanner
+    'scanner.title': 'Scan Barcode',
   },
   es: {
     // Navigation
@@ -216,6 +275,65 @@ export const translations: Record<string, Record<string, string>> = {
     'toast.bookExists': 'El libro ya está en tu biblioteca',
     'toast.preferencesUpdated': 'Preferencias actualizadas',
     'toast.errorOccurred': 'Ocurrió un error',
+    
+    // Profile Page
+    'profile.discoverNext': 'Descubre tu próximo libro',
+    'profile.booksRead': 'Libros que he leído',
+    'profile.addBooksDesc': 'Agrega libros para mejorar tus recomendaciones',
+    'profile.add': 'Agregar',
+    'profile.scan': 'Escanear',
+    'profile.noBooksYet': 'Sin libros aún',
+    'profile.addBooksHelp': 'Agrega libros que has leído para que THOTH te recomiende mejor',
+    'profile.readingList': 'Lista de Lectura',
+    'profile.readingListDesc': 'Libros que quieres leer de las recomendaciones',
+    'profile.noReadingList': 'Sin libros en tu lista',
+    'profile.saveFromRecs': 'Guarda libros de las recomendaciones para agregarlos aquí',
+    'profile.readingPrefs': 'Preferencias de Lectura',
+    'profile.updatePrefsDesc': 'Actualiza tus preferencias para mejores recomendaciones',
+    'profile.favoriteGenres': 'Géneros Favoritos',
+    'profile.settings': 'Ajustes',
+    'profile.historyTab': 'Historial',
+    'profile.markRead': 'Leído',
+    
+    // Learning Progress
+    'progress.saved': 'Guardados',
+    'progress.skipped': 'Pasados',
+    'progress.read': 'Leídos',
+    'progress.toNextLevel': 'para el siguiente nivel',
+    
+    // Home Page
+    'home.howItWorks': 'Cómo Funciona',
+    'home.simpleSteps': '3 pasos simples para encontrar tu próximo libro',
+    'home.createProfile': 'Crea tu perfil',
+    'home.createProfileDesc': 'Responde preguntas sobre tus gustos y personalidad lectora',
+    'home.chooseFavorites': 'Elige tus favoritos',
+    'home.chooseFavoritesDesc': 'Guarda los libros que te interesan. La IA aprende de cada decisión',
+    'home.readRepeat': 'Lee y repite',
+    'home.readRepeatDesc': 'Marca libros como leídos y obtén recomendaciones cada vez mejores',
+    'home.whyThoth': '¿Por qué THOTH?',
+    'home.noParalysis': 'Sin parálisis de elección',
+    'home.onlyThreeOptions': 'Solo 3 opciones perfectas',
+    'home.evolvingAI': 'IA que evoluciona',
+    'home.improvesWithChoice': 'Mejora con cada elección',
+    'home.psychProfile': 'Perfil psicológico',
+    'home.understandsYou': 'Entiende tu personalidad',
+    'home.freeForever': '100% gratis',
+    'home.supportAmazon': 'Apóyanos comprando en Amazon',
+    'home.supportMessage': '💛 THOTH es gratis gracias a las comisiones de Amazon. Al comprar a través de nuestros enlaces, nos ayudas a seguir mejorando sin que te cueste nada extra.',
+    'home.footer': '© 2025 THOTH · Descubre tu próximo libro favorito',
+    'home.aiKnowsYou': 'IA que te conoce',
+    'home.aiKnowsYouDesc': 'Aprende de cada libro que evalúas para entender tu gusto único',
+    'home.exploreChoose': 'Explora y elige',
+    'home.exploreChooseDesc': 'Ve 3 recomendaciones personalizadas y guarda las que te interesen',
+    'home.compatibilityScore': '% de compatibilidad',
+    'home.compatibilityScoreDesc': 'Cada libro muestra qué tan compatible es con tu perfil lector',
+    
+    // Book Card
+    'book.whyChosen': '¿Por qué THOTH lo eligió para ti?',
+    'book.noDescription': 'Sin descripción disponible.',
+    
+    // Barcode Scanner
+    'scanner.title': 'Escanear Código de Barras',
   },
   fr: {
     // Navigation
