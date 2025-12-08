@@ -208,7 +208,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             genres: preferences.genres || [],
             language: preferences.language || 'en',
             readingDuration: preferences.reading_duration || 'medium',
-            onboardingCompleted: preferences.onboarding_completed === true
+            onboardingCompleted: preferences.onboarding_completed === true,
+            readingGoals: preferences.reading_goals || [],
+            readerType: preferences.reader_type || undefined,
+            storyVibes: preferences.story_vibes || [],
+            psychologicalProfile: preferences.psychological_profile || {},
+            favoriteBooks: preferences.favorite_books || undefined
           } : {
             genres: [],
             language: 'en',
@@ -354,7 +359,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         genres: mergedPreferences.genres || [],
         language: mergedPreferences.language || 'en',
         reading_duration: mergedPreferences.readingDuration || 'medium',
-        onboarding_completed: mergedPreferences.onboardingCompleted === true
+        onboarding_completed: mergedPreferences.onboardingCompleted === true,
+        reading_goals: mergedPreferences.readingGoals || [],
+        reader_type: mergedPreferences.readerType || null,
+        story_vibes: mergedPreferences.storyVibes || [],
+        psychological_profile: mergedPreferences.psychologicalProfile || {},
+        favorite_books: mergedPreferences.favoriteBooks || null
       }, {
         onConflict: 'user_id'
       });
@@ -362,7 +372,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) {
       console.error('Error saving preferences:', error);
     } else {
-      console.log('Preferences saved successfully to database');
+      console.log('Preferences saved successfully to database:', mergedPreferences);
     }
     
     const updatedUser = { ...user, preferences: mergedPreferences };

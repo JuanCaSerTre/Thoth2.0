@@ -197,31 +197,46 @@ export type Database = {
       user_preferences: {
         Row: {
           created_at: string | null
+          favorite_books: string | null
           genres: string[] | null
           id: string
           language: string | null
           onboarding_completed: boolean | null
+          psychological_profile: Json | null
+          reader_type: string | null
           reading_duration: string | null
+          reading_goals: string[] | null
+          story_vibes: string[] | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          favorite_books?: string | null
           genres?: string[] | null
           id?: string
           language?: string | null
           onboarding_completed?: boolean | null
+          psychological_profile?: Json | null
+          reader_type?: string | null
           reading_duration?: string | null
+          reading_goals?: string[] | null
+          story_vibes?: string[] | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          favorite_books?: string | null
           genres?: string[] | null
           id?: string
           language?: string | null
           onboarding_completed?: boolean | null
+          psychological_profile?: Json | null
+          reader_type?: string | null
           reading_duration?: string | null
+          reading_goals?: string[] | null
+          story_vibes?: string[] | null
           updated_at?: string | null
           user_id?: string
         }

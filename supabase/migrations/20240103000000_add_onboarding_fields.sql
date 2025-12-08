@@ -1,0 +1,6 @@
+ALTER TABLE public.user_preferences 
+ADD COLUMN IF NOT EXISTS reading_goals TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS reader_type TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS story_vibes TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS psychological_profile JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS favorite_books TEXT DEFAULT NULL;
