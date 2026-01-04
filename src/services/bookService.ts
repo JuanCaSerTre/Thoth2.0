@@ -1,5 +1,6 @@
 import { generateAIRecommendations, type UserProfile } from '@/services/aiService';
 import type { RecommendedBook } from '@/components/BookRecommendationCard';
+import { cacheService } from '@/services/cacheService';
 
 interface Book {
   id: string;
@@ -11,6 +12,7 @@ interface Book {
   isbn?: string;
   aiReasoning?: string;
   aiFocusArea?: string;
+  emotionalHook?: string;
   categories?: string[];
   compatibilityScore?: number;
 }
@@ -347,19 +349,14 @@ const mapToBook = (book: any): RecommendedBook | null => {
 };
 
 export async function getPersonalizedRecommendations(user: any): Promise<RecommendedBook[]> {
-  const recommendations: RecommendedBook[] = [];
-  
-  // Get disliked book IDs to filter them out
-  const dislikedBookIds = new Set(
-    (user.dislikedBooks || []).map((book: any) => book.id)
-  );
-  
-  // Get already revealed book IDs to avoid duplicates
-  const revealedBookIds = new Set(
-    (user.history || []).map((book: any) => book.id)
-  );
-
   try {
+    // Log all user data at start for debugging
+    console.log('🚀 getPersonalizedRecommendations called');
+    console.log('📊 User data received:');
+    console.log('   - likedBooks:', user.likedBooks?.length || 0, user.likedBooks?.map((b: any) => b.id) || []);
+    console.log('   - dislikedBooks:', user.dislikedBooks?.length || 0, user.dislikedBooks?.map((b: any) => b.id) || []);
+    console.log('   - toRead:', user.toRead?.length || 0, user.toRead?.map((b: any) => b.id) || []);
+    console.log('   - history:', user.history?.length || 0, user.history?.map((b: any) => b.id) || []);
     console.log('=== STARTING PERSONALIZED RECOMMENDATIONS ===');
     console.log('\n📊 USER PROFILE ANALYSIS:');
     console.log('═══════════════════════════════════════════════════════════');
@@ -405,7 +402,7 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       console.log('📊 Auto-detected genres from liked books:', effectiveGenres.join(', '));
     }
 
-    // Build user profile for AI with ALL available data INCLUDING LIKES/DISLIKES
+    // Build user profile for AI with ALL available data INCLUDING LIKES/DISLIKES/TOREAD
     const userProfile: UserProfile = {
       genres: effectiveGenres,
       emotions: user.preferences?.emotions || (user.preferences?.emotion ? [user.preferences.emotion] : []),
@@ -425,7 +422,8 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       library: user.library || [],
       readingHistory: user.history || [],
       likedBooks: user.likedBooks || [],
-      dislikedBooks: user.dislikedBooks || []
+      dislikedBooks: user.dislikedBooks || [],
+      toReadBooks: user.toRead || []
     };
 
     // Build comprehensive exclusion sets FIRST
@@ -437,6 +435,10 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       (user.toRead || []).map((book: any) => book.isbn).filter(Boolean)
     );
     
+    const likedISBNs = new Set(
+      (user.likedBooks || []).map((book: any) => book.isbn).filter(Boolean)
+    );
+    
     // Exclude books by title/author from library, history, toRead, AND likedBooks
     const readBookTitles = new Set(
       [...(user.library || []), ...(user.history || []), ...(user.toRead || []), ...(user.likedBooks || []), ...(user.dislikedBooks || [])]
@@ -444,11 +446,31 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
         .filter(Boolean)
     );
     
-    // Also exclude by book ID
+    // Also exclude by book ID (Google Books IDs)
     const seenBookIds = new Set(
       [...(user.library || []), ...(user.history || []), ...(user.toRead || []), ...(user.likedBooks || []), ...(user.dislikedBooks || [])]
         .map((book: any) => book.id)
         .filter(Boolean)
+    );
+    
+    // Disliked book IDs (to completely exclude)
+    const dislikedBookIds = new Set(
+      (user.dislikedBooks || []).map((book: any) => book.id).filter(Boolean)
+    );
+    
+    // Revealed book IDs (from history)
+    const revealedBookIds = new Set(
+      (user.history || []).map((book: any) => book.id).filter(Boolean)
+    );
+    
+    // To Read book IDs (to exclude from recommendations)
+    const toReadBookIds = new Set(
+      (user.toRead || []).map((book: any) => book.id).filter(Boolean)
+    );
+    
+    // Liked book IDs (already saved)
+    const likedBookIds = new Set(
+      (user.likedBooks || []).map((book: any) => book.id).filter(Boolean)
     );
     
     const readBookAuthors = new Set<string>();
@@ -458,11 +480,23 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       (user.dislikedBooks || []).map((b: any) => b.author?.toLowerCase().trim()).filter(Boolean)
     );
 
-    console.log('Exclusion - Library ISBNs:', Array.from(libraryISBNs));
-    console.log('Exclusion - ToRead ISBNs:', Array.from(toReadISBNs));
-    console.log('Exclusion - Titles:', Array.from(readBookTitles).slice(0, 5));
-    console.log('Exclusion - Book IDs:', Array.from(seenBookIds).slice(0, 5));
-    console.log('Exclusion - Disliked Authors:', Array.from(dislikedAuthors));
+    console.log('=== EXCLUSION SETS ===');
+    console.log('📚 Library ISBNs:', Array.from(libraryISBNs));
+    console.log('📖 ToRead ISBNs:', Array.from(toReadISBNs));
+    console.log('❤️ Liked ISBNs:', Array.from(likedISBNs));
+    console.log('📝 All Titles to exclude:', Array.from(readBookTitles));
+    console.log('🔑 All Book IDs to exclude:', Array.from(seenBookIds));
+    console.log('❌ Disliked Book IDs:', Array.from(dislikedBookIds));
+    console.log('👁️ Revealed Book IDs:', Array.from(revealedBookIds));
+    console.log('📖 ToRead Book IDs:', Array.from(toReadBookIds));
+    console.log('❤️ Liked Book IDs:', Array.from(likedBookIds));
+    console.log('🚫 Disliked Authors:', Array.from(dislikedAuthors));
+    console.log('======================');
+
+    // DISABLED CACHE - Always get fresh recommendations
+    // The cache was returning books that the user had already liked/disliked
+    // This caused the same books to be shown repeatedly
+    console.log('🔄 Fetching fresh recommendations (cache disabled for accurate filtering)');
 
     const allBooks: RecommendedBook[] = [];
     const seenISBNs = new Set<string>();
@@ -491,10 +525,11 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       try {
         console.log(`\n--- Fetching books for query: ${aiRec.searchQuery} ---`);
         
+        // Add language restriction to improve results
         const response = await fetch(
           `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
             aiRec.searchQuery
-          )}&maxResults=40&orderBy=relevance&langRestrict=${langRestrict}`
+          )}&maxResults=40&orderBy=relevance&langRestrict=${langRestrict}&printType=books`
         );
 
         if (!response.ok) {
@@ -521,6 +556,9 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
             const author = item.volumeInfo.authors?.[0]?.toLowerCase().trim();
             const bookId = item.id;
             const bookLanguage = item.volumeInfo.language;
+            
+            // Create normalized title for comparison (removes special chars and extra spaces)
+            const normalizedTitle = title?.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 
             // Skip if book language doesn't match user preference (when not English)
             if (langRestrict !== 'en' && bookLanguage && bookLanguage !== langRestrict) {
@@ -528,21 +566,59 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
               return null;
             }
 
-            // Skip disliked books and already seen books
-            if (dislikedBookIds.has(bookId) || revealedBookIds.has(bookId) || seenBookIds.has(bookId)) {
+            // CRITICAL: Filter out all books that user has interacted with
+            
+            // Skip by Book ID (use the combined seenBookIds set which includes everything)
+            if (seenBookIds.has(bookId)) {
+              console.log(`❌ FILTER: Skipping "${item.volumeInfo.title}" - ID already in user data: ${bookId}`);
               return null;
             }
 
-            // Skip if already in library/history/toRead by ISBN or title
-            if (
-              (isbn && (libraryISBNs.has(isbn) || toReadISBNs.has(isbn) || seenISBNs.has(isbn))) ||
-              (title && (readBookTitles.has(title) || seenTitles.has(title)))
-            ) {
+            // Also check specific sets in case IDs differ
+            if (dislikedBookIds.has(bookId) || revealedBookIds.has(bookId) || toReadBookIds.has(bookId) || likedBookIds.has(bookId)) {
+              console.log(`❌ FILTER: Skipping "${item.volumeInfo.title}" - Found in specific ID set: ${bookId}`);
               return null;
+            }
+
+            // Skip if in library by ID (check book_id property)
+            if (user.library && user.library.some((b: any) => b.id === bookId || b.book_id === bookId)) {
+              console.log(`❌ FILTER: Skipping "${item.volumeInfo.title}" - In library: ${bookId}`);
+              return null;
+            }
+
+            // Skip by ISBN
+            if (isbn && (libraryISBNs.has(isbn) || toReadISBNs.has(isbn) || likedISBNs.has(isbn))) {
+              console.log(`❌ FILTER: Skipping "${item.volumeInfo.title}" - ISBN match: ${isbn}`);
+              return null;
+            }
+            
+            // Skip by exact title match
+            if (title && (readBookTitles.has(title) || seenTitles.has(title))) {
+              console.log(`❌ FILTER: Skipping "${item.volumeInfo.title}" - Exact title match`);
+              return null;
+            }
+            
+            // Skip if normalized title matches any in our exclusion list (handles slight variations)
+            if (normalizedTitle) {
+              for (const existingTitle of readBookTitles) {
+                const normalizedExisting = existingTitle?.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+                if (normalizedExisting && normalizedTitle === normalizedExisting) {
+                  console.log(`Skipping book "${item.volumeInfo.title}" - normalized title match: ${normalizedExisting}`);
+                  return null;
+                }
+              }
+              for (const existingTitle of seenTitles) {
+                const normalizedExisting = existingTitle?.replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+                if (normalizedExisting && normalizedTitle === normalizedExisting) {
+                  console.log(`Skipping book "${item.volumeInfo.title}" - normalized title match in session: ${normalizedExisting}`);
+                  return null;
+                }
+              }
             }
 
             // Skip if author is from disliked books
             if (author && dislikedAuthors.has(author)) {
+              console.log(`Skipping book "${item.volumeInfo.title}" - disliked author: ${author}`);
               return null;
             }
 
@@ -558,7 +634,8 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
               title,
               score,
               aiReasoning: aiRec.reasoning,
-              aiFocusArea: aiRec.focusArea
+              aiFocusArea: aiRec.focusArea,
+              emotionalHook: aiRec.emotionalHook
             };
           })
           .filter((book): book is any => book !== null)
@@ -569,6 +646,27 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
         // Take top book from this AI recommendation
         if (scoredBooks.length > 0) {
           for (const topBook of scoredBooks) {
+            // CHECK AGAIN here before adding to final list
+            const bookId = topBook.id;
+            const bookISBN = topBook.isbn;
+            const bookTitle = topBook.title;
+            
+            // Skip if book was already interacted with
+            if (dislikedBookIds.has(bookId) || revealedBookIds.has(bookId) || toReadBookIds.has(bookId) || likedBookIds.has(bookId)) {
+              console.log(`⚠️ FINAL CHECK: Skipping "${topBook.volumeInfo?.title}" - ID already in user history`);
+              continue;
+            }
+            
+            if (bookISBN && (libraryISBNs.has(bookISBN) || toReadISBNs.has(bookISBN) || likedISBNs.has(bookISBN) || seenISBNs.has(bookISBN))) {
+              console.log(`⚠️ FINAL CHECK: Skipping "${topBook.volumeInfo?.title}" - ISBN already seen`);
+              continue;
+            }
+            
+            if (bookTitle && (readBookTitles.has(bookTitle) || seenTitles.has(bookTitle))) {
+              console.log(`⚠️ FINAL CHECK: Skipping "${topBook.volumeInfo?.title}" - Title already seen`);
+              continue;
+            }
+            
             const mappedBook = mapToBook(topBook);
             if (!mappedBook) continue; // Skip books without valid ISBN
             
@@ -577,6 +675,7 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
             
             mappedBook.aiReasoning = aiRec.reasoning;
             mappedBook.aiFocusArea = aiRec.focusArea;
+            mappedBook.emotionalHook = aiRec.emotionalHook;
             
             // Calculate compatibility score based on actual score
             // Score ranges: 50 base + up to 400 from matches
@@ -648,43 +747,53 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
               
               const bookISBN = topBook.volumeInfo.industryIdentifiers?.[0]?.identifier;
               const bookTitle = topBook.volumeInfo.title?.toLowerCase().trim();
+              const bookId = topBook.id;
               
-              if (
-                (!bookISBN || !seenISBNs.has(bookISBN)) &&
-                (!bookTitle || !seenTitles.has(bookTitle))
-              ) {
-                if (bookISBN) seenISBNs.add(bookISBN);
-                if (bookTitle) seenTitles.add(bookTitle);
-                
-                const mappedBook = mapToBook(topBook);
-                mappedBook.aiReasoning = aiRec.reasoning;
-                mappedBook.aiFocusArea = aiRec.focusArea;
-                
-                const rawScore = Math.max(0, topBook.score);
-                let compatibilityScore: number;
-                if (rawScore >= 200) {
-                  compatibilityScore = 95 + Math.min(4, Math.floor((rawScore - 200) / 50));
-                } else if (rawScore >= 150) {
-                  compatibilityScore = 88 + Math.floor((rawScore - 150) / 7);
-                } else if (rawScore >= 100) {
-                  compatibilityScore = 80 + Math.floor((rawScore - 100) / 6);
-                } else if (rawScore >= 70) {
-                  compatibilityScore = 70 + Math.floor((rawScore - 70) / 3);
-                } else if (rawScore >= 50) {
-                  compatibilityScore = 60 + Math.floor((rawScore - 50) / 2);
-                } else {
-                  compatibilityScore = 50 + Math.floor(rawScore / 5);
-                }
-                
-                mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
-                
-                // Add books with 70% or higher compatibility
-                if (mappedBook.compatibilityScore >= 70) {
-                  allBooks.push(mappedBook);
-                  console.log(`✓ Added additional book: "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
-                } else {
-                  console.log(`✗ Skipped additional book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
-                }
+              // Apply same exclusion logic as main loop
+              const isExcluded = 
+                (bookId && (dislikedBookIds.has(bookId) || revealedBookIds.has(bookId) || seenBookIds.has(bookId) || toReadBookIds.has(bookId) || likedBookIds.has(bookId))) ||
+                (bookISBN && (libraryISBNs.has(bookISBN) || toReadISBNs.has(bookISBN) || likedISBNs.has(bookISBN) || seenISBNs.has(bookISBN))) ||
+                (bookTitle && (readBookTitles.has(bookTitle) || seenTitles.has(bookTitle)));
+              
+              if (isExcluded) {
+                console.log(`Skipping additional book "${topBook.volumeInfo.title}" - already excluded`);
+                continue;
+              }
+              
+              if (bookISBN) seenISBNs.add(bookISBN);
+              if (bookTitle) seenTitles.add(bookTitle);
+              
+              const mappedBook = mapToBook(topBook);
+              if (!mappedBook) continue;
+              
+              mappedBook.aiReasoning = aiRec.reasoning;
+              mappedBook.aiFocusArea = aiRec.focusArea;
+              mappedBook.emotionalHook = aiRec.emotionalHook;
+              
+              const rawScore = Math.max(0, topBook.score);
+              let compatibilityScore: number;
+              if (rawScore >= 200) {
+                compatibilityScore = 95 + Math.min(4, Math.floor((rawScore - 200) / 50));
+              } else if (rawScore >= 150) {
+                compatibilityScore = 88 + Math.floor((rawScore - 150) / 7);
+              } else if (rawScore >= 100) {
+                compatibilityScore = 80 + Math.floor((rawScore - 100) / 6);
+              } else if (rawScore >= 70) {
+                compatibilityScore = 70 + Math.floor((rawScore - 70) / 3);
+              } else if (rawScore >= 50) {
+                compatibilityScore = 60 + Math.floor((rawScore - 50) / 2);
+              } else {
+                compatibilityScore = 50 + Math.floor(rawScore / 5);
+              }
+              
+              mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
+              
+              // Add books with 70% or higher compatibility
+              if (mappedBook.compatibilityScore >= 70) {
+                allBooks.push(mappedBook);
+                console.log(`✓ Added additional book: "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+              } else {
+                console.log(`✗ Skipped additional book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
               }
             }
           }
@@ -776,6 +885,7 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
                 const mappedBook = mapToBook(topBook);
                 mappedBook.aiReasoning = search.reasoning;
                 mappedBook.aiFocusArea = search.focusArea;
+                mappedBook.emotionalHook = search.emotionalHook;
                 
                 const rawScore = Math.max(0, topBook.score);
                 let compatibilityScore: number;
@@ -824,6 +934,9 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
       console.log(`   🎯 Focus: ${b.aiFocusArea}`);
       console.log(`   📚 Categories: ${b.categories?.join(', ') || 'N/A'}`);
     });
+
+    // CACHE DISABLED - We need fresh recommendations each time
+    // to properly exclude books the user has interacted with
 
     // Return only books with 80%+ compatibility
     return allBooks.slice(0, 3);

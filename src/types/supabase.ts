@@ -137,6 +137,7 @@ export type Database = {
           book_id: string
           cover: string | null
           id: string
+          isbn: string | null
           liked_at: string | null
           title: string
           user_id: string
@@ -146,6 +147,7 @@ export type Database = {
           book_id: string
           cover?: string | null
           id?: string
+          isbn?: string | null
           liked_at?: string | null
           title: string
           user_id: string
@@ -155,9 +157,40 @@ export type Database = {
           book_id?: string
           cover?: string | null
           id?: string
+          isbn?: string | null
           liked_at?: string | null
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      recommendation_ratings: {
+        Row: {
+          book_id: string
+          book_title: string
+          created_at: string
+          feedback: string | null
+          id: string
+          rating: number
+          user_id: string | null
+        }
+        Insert: {
+          book_id: string
+          book_title: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          rating: number
+          user_id?: string | null
+        }
+        Update: {
+          book_id?: string
+          book_title?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          rating?: number
+          user_id?: string | null
         }
         Relationships: []
       }

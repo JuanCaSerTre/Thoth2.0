@@ -253,14 +253,14 @@ export default function Onboarding() {
     // Wait for auth to load
     if (isLoading) return;
     
-    // If not logged in, redirect to home
+    // If not logged in, redirect to login (they need to be authenticated for onboarding)
     if (!user) {
-      navigate('/', { replace: true });
+      navigate('/login', { replace: true });
       return;
     }
-    // If already completed onboarding, redirect to home
+    // If already completed onboarding, redirect to profile
     if (user.preferences?.onboardingCompleted) {
-      navigate('/', { replace: true });
+      navigate('/profile', { replace: true });
     }
   }, [user, navigate, isLoading]);
 

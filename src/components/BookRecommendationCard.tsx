@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { X, Sparkles, BookOpen, User, Tag, ExternalLink, Star, BookmarkPlus, Clock, Calendar, ShoppingCart, Tablet } from 'lucide-react';
+import { X, Sparkles, BookOpen, User, Tag, ExternalLink, Star, BookmarkPlus, Clock, Calendar, ShoppingCart, Tablet, Share2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ export interface RecommendedBook {
   amazonLink?: string;
   aiReasoning?: string;
   aiFocusArea?: string;
+  emotionalHook?: string;
   compatibilityScore?: number;
   pageCount?: number;
   publishedDate?: string;
@@ -73,6 +74,27 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
     trackAmazonClick(user?.id, book.id, book.title);
   };
 
+  const handleShare = async () => {
+    const shareText = `📚 THOTH me recomendó: "${book.title}" por ${book.author}\n\n${book.emotionalHook || book.aiReasoning || 'Descubre tu próximo libro'}\n\n🔮 Encuentra tus próximas lecturas en:`;
+    const shareUrl = 'https://1293daa6-403b-4b93-94be-eebe111b8951.canvases.tempo.build';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `THOTH recomienda: ${book.title}`,
+          text: shareText,
+          url: shareUrl
+        });
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    } else {
+      const fullText = `${shareText} ${shareUrl}`;
+      await navigator.clipboard.writeText(fullText);
+      alert('✓ Link copiado! Pégalo en tus stories/posts');
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40, scale: 0.95 }}
@@ -80,9 +102,11 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
       transition={{ 
         duration: 0.5, 
         delay: index * 0.12,
-        ease: [0.25, 0.46, 0.45, 0.94]
+        ease: [0.25, 0.46, 0.45, 0.94],
+        type: "spring",
+        stiffness: 100
       }}
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -8, scale: 1.02, transition: { duration: 0.3 } }}
       className="h-full"
     >
       <Card className={`
@@ -206,6 +230,24 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
             </div>
           </div>
 
+          {/* THOTH's Wisdom - Emotional Hook */}
+          {book.emotionalHook && (
+            <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 dark:from-purple-950/50 dark:to-indigo-950/50 rounded-lg sm:rounded-xl p-2.5 sm:p-3.5 border border-purple-200/40 dark:border-purple-800/30">
+                <div className="flex items-start gap-2 sm:gap-2.5">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-500/15 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs italic text-purple-900 dark:text-purple-200 leading-relaxed">
+                      "{book.emotionalHook}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI Reasoning */}
           {book.aiReasoning && (
             <div className="px-3 sm:px-4 pb-2 sm:pb-3">
@@ -284,6 +326,15 @@ export default function BookRecommendationCard({ book, onLike, onDislike, index 
 
             {/* Secondary Action Buttons */}
             <div className="flex gap-1.5 sm:gap-2">
+              <Button
+                onClick={handleShare}
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-full border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all duration-200 py-3 sm:py-4 text-xs sm:text-sm"
+              >
+                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
+                Compartir
+              </Button>
               <Button
                 onClick={() => onDislike(book)}
                 variant="outline"

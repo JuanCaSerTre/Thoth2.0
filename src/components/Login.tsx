@@ -26,7 +26,7 @@ export default function Login() {
       if (!user.preferences?.onboardingCompleted) {
         navigate('/onboarding', { replace: true });
       } else {
-        navigate('/', { replace: true });
+        navigate('/profile', { replace: true });
       }
     }
   }, [user, authLoading, navigate]);
@@ -137,7 +137,7 @@ export default function Login() {
       if (loggedInUser && !loggedInUser.preferences?.onboardingCompleted) {
         navigate('/onboarding');
       } else {
-        navigate('/');
+        navigate('/profile');
       }
     } catch (error) {
       console.error('Login error in component:', error);

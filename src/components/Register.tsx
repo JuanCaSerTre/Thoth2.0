@@ -186,6 +186,8 @@ export default function Register() {
         title: c.accountCreated,
         description: c.accountCreatedDesc
       });
+      // Navigate to onboarding - if email confirmation is needed,
+      // the user will be redirected to login from there
       navigate('/onboarding');
     } catch (error) {
       console.error('Registration error in component:', error);

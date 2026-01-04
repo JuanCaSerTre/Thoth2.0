@@ -48,7 +48,8 @@ interface Book {
 }
 
 interface LibraryBook {
-  id: string;
+  id: string; // Google Books ID
+  rowId?: string; // Supabase row ID for delete/update operations
   isbn: string;
   title: string;
   author: string;
@@ -63,7 +64,8 @@ interface LibraryBook {
 }
 
 interface ToReadBook {
-  id: string;
+  id: string; // Google Books ID
+  rowId?: string; // Supabase row ID for delete operations
   isbn?: string;
   title: string;
   author: string;
@@ -77,7 +79,8 @@ interface ToReadBook {
 }
 
 interface LikedBook {
-  id: string;
+  id: string; // Google Books ID
+  rowId?: string; // Supabase row ID for delete operations
   isbn?: string;
   title: string;
   author: string;
@@ -90,7 +93,8 @@ interface LikedBook {
 }
 
 interface DislikedBook {
-  id: string;
+  id: string; // Google Books ID
+  rowId?: string; // Supabase row ID for delete operations
   isbn?: string;
   title: string;
   author: string;
@@ -126,16 +130,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const loadingUserIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     
+    // Failsafe timeout - if loading takes more than 10 seconds, stop loading
+    const failsafeTimeout = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.warn('Auth loading timeout - forcing complete');
+        setIsLoading(false);
+        setIsInitialized(true);
+      }
+    }, 10000);
+    
     // Check for existing session on mount
     const initializeAuth = async () => {
+      console.log('Initializing auth...');
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Got session:', session?.user?.id, 'Error:', error);
+        
+        if (error) {
+          console.error('Session error:', error);
+          if (isMounted) {
+            setIsLoading(false);
+            setIsInitialized(true);
+          }
+          return;
+        }
+        
         if (session?.user && isMounted) {
+          loadingUserIdRef.current = session.user.id;
           await loadUserData(session.user.id);
+          loadingUserIdRef.current = null;
         } else if (isMounted) {
           setIsLoading(false);
         }
@@ -143,42 +171,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error initializing auth:', error);
         if (isMounted) {
           setIsLoading(false);
+          loadingUserIdRef.current = null;
         }
       } finally {
         if (isMounted) {
           setIsInitialized(true);
+          clearTimeout(failsafeTimeout);
         }
       }
     };
 
-    initializeAuth();
-
-    // Listen for auth changes - only handle SIGNED_OUT after initialization
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.id);
       
-      // Only handle sign out events after initialization
-      // Login/register will handle their own user loading
       if (event === 'SIGNED_OUT' && isMounted) {
         setUser(null);
         setIsLoading(false);
+        loadingUserIdRef.current = null;
+      }
+      
+      // Handle email confirmation and sign in events
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && isMounted) {
+        // Skip if we're already loading this user's data
+        if (loadingUserIdRef.current === session.user.id) {
+          console.log('Skipping duplicate loadUserData for:', session.user.id);
+          return;
+        }
+        
+        // Load user data - this handles:
+        // 1. Email confirmation click
+        // 2. Auto-login after registration (when confirmation not required)
+        loadingUserIdRef.current = session.user.id;
+        setIsLoading(true);
+        await loadUserData(session.user.id);
+        loadingUserIdRef.current = null;
       }
     });
 
+    // Then initialize
+    initializeAuth();
+
     return () => {
       isMounted = false;
+      clearTimeout(failsafeTimeout);
       subscription.unsubscribe();
     };
   }, []);
 
   const loadUserData = async (userId: string): Promise<User | null> => {
+    console.log('Loading user data for:', userId);
     try {
-      // Get user preferences
-      const { data: preferences, error: prefError } = await supabase
+      // Get user preferences with timeout
+      const preferencesPromise = supabase
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
-        .single() as { data: UserPreferencesRow | null, error: any };
+        .single();
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Preferences query timeout')), 60000)
+      );
+      
+      let preferences: UserPreferencesRow | null = null;
+      let prefError: any = null;
+      
+      try {
+        const result = await Promise.race([
+          preferencesPromise,
+          timeoutPromise
+        ]) as { data: UserPreferencesRow | null, error: any };
+        preferences = result.data;
+        prefError = result.error;
+      } catch (timeoutErr) {
+        console.warn('Preferences query timed out, continuing without preferences');
+        prefError = timeoutErr;
+      }
 
       console.log('Loaded preferences from DB:', preferences);
       console.log('Preferences error:', prefError);
@@ -243,7 +311,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             onboardingCompleted: false
           },
           history: history?.map(h => ({
-            id: h.id,
+            id: h.book_id, // Use book_id (Google Books ID) not the Supabase row ID
+            rowId: h.id, // Keep Supabase row ID for operations
             title: h.title,
             author: h.authors?.[0] || 'Unknown',
             cover: h.cover_url || '',
@@ -251,7 +320,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             revealedAt: h.revealed_at
           })) || [],
           library: library?.map(l => ({
-            id: l.id,
+            id: l.book_id, // Use book_id (Google Books ID) not the Supabase row ID
+            rowId: l.id, // Keep Supabase row ID for delete/update operations
             isbn: l.isbn,
             title: l.title,
             author: l.author,
@@ -265,7 +335,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addedAt: l.added_at
           })) || [],
           toRead: toRead?.map(t => ({
-            id: t.id,
+            id: t.book_id, // Use book_id (Google Books ID) not the Supabase row ID
+            rowId: t.id, // Keep Supabase row ID for delete operations
             isbn: t.isbn || undefined,
             title: t.title,
             author: t.author,
@@ -274,7 +345,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addedAt: t.added_at
           })) || [],
           likedBooks: likedBooks?.map(l => ({
-            id: l.id,
+            id: l.book_id, // Use book_id (Google Books ID) not the Supabase row ID
+            rowId: l.id, // Keep Supabase row ID for delete operations
             title: l.title,
             author: l.author,
             cover: l.cover || '',
@@ -282,7 +354,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             likedAt: l.liked_at
           })) || [],
           dislikedBooks: dislikedBooks?.map(d => ({
-            id: d.id,
+            id: d.book_id, // Use book_id (Google Books ID) not the Supabase row ID
+            rowId: d.id, // Keep Supabase row ID for delete operations
             title: d.title,
             author: d.author,
             cover: d.cover || '',
@@ -336,7 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin
+        emailRedirectTo: `${window.location.origin}/onboarding`
       }
     });
 
@@ -366,7 +439,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Preferences save error:', prefError);
     }
 
-    await loadUserData(data.user.id);
+    // If session exists (email confirmation not required), load user data
+    // If session is null, user needs to confirm email first
+    if (data.session) {
+      await loadUserData(data.user.id);
+    }
+    // Note: If email confirmation is required, the user will be loaded 
+    // when they click the confirmation link via onAuthStateChange
   };
 
   const logout = async () => {
@@ -439,7 +518,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      await supabase.from('library').insert({
+      const { error } = await supabase.from('library').insert({
         user_id: user.id,
         book_id: book.id,
         isbn: book.isbn,
@@ -453,11 +532,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notes: book.notes
       });
 
+      if (error) {
+        console.error('❌ Error saving to library:', error);
+        throw error;
+      }
+
       const updatedLibrary = [book, ...currentLibrary];
       const updatedUser = { ...user, library: updatedLibrary };
       setUser(updatedUser);
+      console.log('✅ Book added to library:', book.title);
     } catch (error) {
-      console.error('Error adding to library:', error);
+      console.error('❌ Exception adding to library:', error);
       throw error;
     }
   };
@@ -465,11 +550,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const removeFromLibrary = async (bookId: string) => {
     if (!user) return;
 
+    // bookId is the Google Books ID, use book_id column for deletion
     await supabase
       .from('library')
       .delete()
       .eq('user_id', user.id)
-      .eq('id', bookId);
+      .eq('book_id', bookId);
 
     const currentLibrary = user.library || [];
     const updatedLibrary = currentLibrary.filter(b => b.id !== bookId);
@@ -480,6 +566,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateLibraryBook = async (bookId: string, updates: Partial<LibraryBook>) => {
     if (!user) return;
 
+    // bookId is the Google Books ID, use book_id column for update
     await supabase
       .from('library')
       .update({
@@ -489,7 +576,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notes: updates.notes
       })
       .eq('user_id', user.id)
-      .eq('id', bookId);
+      .eq('book_id', bookId);
 
     const currentLibrary = user.library || [];
     const updatedLibrary = currentLibrary.map(b => 
@@ -505,36 +592,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentToRead = user.toRead || [];
     const exists = currentToRead.find(b => b.id === book.id);
     if (exists) {
-      throw new Error('Book already in To Read list');
+      console.log('📖 Book already in ToRead list, skipping:', book.title);
+      return; // Changed from throwing error to just returning
     }
 
-    await supabase.from('to_read').insert({
-      user_id: user.id,
-      book_id: book.id,
-      title: book.title,
-      author: book.author,
-      cover: book.cover,
-      isbn: book.isbn
-    });
+    try {
+      const { error } = await supabase.from('to_read').insert({
+        user_id: user.id,
+        book_id: book.id,
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        isbn: book.isbn || null
+      });
 
-    const updatedToRead = [book, ...currentToRead];
-    const updatedUser = { ...user, toRead: updatedToRead };
-    setUser(updatedUser);
+      if (error) {
+        console.error('❌ Error saving to to_read:', error);
+        return;
+      }
+
+      const updatedToRead = [book, ...currentToRead];
+      const updatedUser = { ...user, toRead: updatedToRead };
+      setUser(updatedUser);
+      
+      console.log('✅ Book added to ToRead:', book.title, 'ID:', book.id, 'ISBN:', book.isbn);
+    } catch (err) {
+      console.error('❌ Exception saving to to_read:', err);
+    }
   };
 
   const removeFromToRead = async (bookId: string) => {
     if (!user) return;
 
+    // Remove from to_read table
     await supabase
       .from('to_read')
       .delete()
       .eq('user_id', user.id)
       .eq('book_id', bookId);
 
+    // Also remove from liked_books if it exists there
+    await supabase
+      .from('liked_books')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('book_id', bookId);
+
     const currentToRead = user.toRead || [];
     const updatedToRead = currentToRead.filter(b => b.id !== bookId);
-    const updatedUser = { ...user, toRead: updatedToRead };
+    
+    const currentLiked = user.likedBooks || [];
+    const updatedLiked = currentLiked.filter(b => b.id !== bookId);
+    
+    const updatedUser = { ...user, toRead: updatedToRead, likedBooks: updatedLiked };
     setUser(updatedUser);
+    
+    console.log('🗑️ Book removed from ToRead AND LikedBooks:', bookId);
   };
 
   const moveToReadFromToRead = async (bookId: string) => {
@@ -583,21 +696,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const currentLiked = user.likedBooks || [];
     const exists = currentLiked.find(b => b.id === book.id);
-    if (exists) return;
+    if (exists) {
+      console.log('📚 Book already in liked list, skipping:', book.title);
+      return;
+    }
 
-    await supabase.from('liked_books').insert({
-      user_id: user.id,
-      book_id: book.id,
-      title: book.title,
-      author: book.author,
-      cover: book.cover
-    });
+    try {
+      const { error } = await supabase.from('liked_books').insert({
+        user_id: user.id,
+        book_id: book.id,
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        isbn: book.isbn || null
+      });
 
-    const updatedLiked = [book, ...currentLiked];
-    const updatedUser = { ...user, likedBooks: updatedLiked };
-    setUser(updatedUser);
+      if (error) {
+        console.error('❌ Error saving to liked_books:', error);
+        return;
+      }
 
-    console.log('📚 Book LIKED - AI will learn from this!', book.title);
+      const updatedLiked = [book, ...currentLiked];
+      const updatedUser = { ...user, likedBooks: updatedLiked };
+      setUser(updatedUser);
+
+      console.log('✅ Book LIKED - AI will learn from this!', book.title, 'ID:', book.id, 'ISBN:', book.isbn);
+    } catch (err) {
+      console.error('❌ Exception saving to liked_books:', err);
+    }
   };
 
   const dislikeBook = async (book: DislikedBook) => {
@@ -607,19 +733,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const exists = currentDisliked.find(b => b.id === book.id);
     if (exists) return;
 
-    await supabase.from('disliked_books').insert({
-      user_id: user.id,
-      book_id: book.id,
-      title: book.title,
-      author: book.author,
-      cover: book.cover
-    });
+    try {
+      const { error } = await supabase.from('disliked_books').insert({
+        user_id: user.id,
+        book_id: book.id,
+        title: book.title,
+        author: book.author,
+        cover: book.cover
+      });
 
-    const updatedDisliked = [book, ...currentDisliked];
-    const updatedUser = { ...user, dislikedBooks: updatedDisliked };
-    setUser(updatedUser);
+      if (error) {
+        console.error('❌ Error saving to disliked_books:', error);
+        return;
+      }
 
-    console.log('👎 Book DISLIKED - AI will avoid similar books!', book.title);
+      const updatedDisliked = [book, ...currentDisliked];
+      const updatedUser = { ...user, dislikedBooks: updatedDisliked };
+      setUser(updatedUser);
+
+      console.log('👎 Book DISLIKED - AI will avoid similar books!', book.title);
+    } catch (err) {
+      console.error('❌ Exception saving to disliked_books:', err);
+    }
   };
 
   return (

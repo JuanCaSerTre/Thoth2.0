@@ -21,10 +21,22 @@ export default function BarcodeScanner({ isOpen, onClose, onScan }: BarcodeScann
   useEffect(() => {
     if (!isOpen) {
       // Clean up when dialog closes
-      if (scannerRef.current && isScanning) {
-        scannerRef.current.stop().catch(console.error);
-        setIsScanning(false);
-      }
+      const cleanup = async () => {
+        if (scannerRef.current) {
+          try {
+            if (isScanning) {
+              await scannerRef.current.stop();
+            }
+          } catch (err) {
+            console.error('Error during cleanup:', err);
+          } finally {
+            scannerRef.current = null;
+            setIsScanning(false);
+            setError('');
+          }
+        }
+      };
+      cleanup();
     }
   }, [isOpen, isScanning]);
 
@@ -104,9 +116,20 @@ export default function BarcodeScanner({ isOpen, onClose, onScan }: BarcodeScann
     }
   };
 
-  const handleClose = () => {
-    stopScanning();
-    onClose();
+  const handleClose = async () => {
+    try {
+      if (scannerRef.current && isScanning) {
+        await scannerRef.current.stop();
+        setIsScanning(false);
+      }
+    } catch (err) {
+      console.error('Error stopping scanner on close:', err);
+      setIsScanning(false);
+    } finally {
+      // Reset scanner ref to ensure clean state
+      scannerRef.current = null;
+      onClose();
+    }
   };
 
   return (

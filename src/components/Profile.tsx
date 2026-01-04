@@ -9,7 +9,9 @@ import BookCard from '@/components/BookCard';
 import BookRecommendationCard, { type RecommendedBook } from '@/components/BookRecommendationCard';
 import FeedbackDialog from '@/components/FeedbackDialog';
 import ProfileCompletion from '@/components/ProfileCompletion';
+import RatingDialog from '@/components/RatingDialog';
 import { fetchBookByISBN, getPersonalizedRecommendations } from '@/services/bookService';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,6 +71,37 @@ interface BookSearchResult {
   };
 }
 
+// Loading step component for animated loading states
+function LoadingStep({ delay, text }: { delay: number; text: string }) {
+  const [visible, setVisible] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), delay * 1000);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  
+  return (
+    <motion.div
+      className="flex items-center gap-2 justify-center"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : -10 }}
+      transition={{ duration: 0.3 }}
+    >
+      {visible && (
+        <>
+          <motion.div
+            className="w-1.5 h-1.5 bg-green-500 rounded-full"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          />
+          <span>{text}</span>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, updatePreferences, addToHistory, addToLibrary, removeFromLibrary, updateLibraryBook, removeFromToRead, moveToReadFromToRead, likeBook, dislikeBook, addToToRead } = useAuth();
@@ -99,6 +132,8 @@ export default function Profile() {
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [readingDuration, setReadingDuration] = useState(user?.preferences?.readingDuration || 'medium');
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [ratingBook, setRatingBook] = useState<RecommendedBook | null>(null);
   
   // Update preferences when user changes them
   useEffect(() => {
@@ -157,8 +192,14 @@ export default function Profile() {
     return () => clearTimeout(delaySearch);
   }, [searchQuery]);
 
+  // Redirect effect - navigate in useEffect, not during render
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
   if (!user) {
-    navigate('/login');
     return null;
   }
 
@@ -200,6 +241,10 @@ export default function Profile() {
   };
 
   const handleLikeBook = async (book: RecommendedBook) => {
+    // Show rating dialog
+    setRatingBook(book);
+    setShowRatingDialog(true);
+    
     // Add to liked books for AI learning
     likeBook({
       ...book,
@@ -470,10 +515,11 @@ export default function Profile() {
   };
 
   const handleRemoveFromToRead = (bookId: string) => {
+    const book = user.toRead?.find(b => b.id === bookId);
     removeFromToRead(bookId);
     toast({
-      title: 'Libro eliminado',
-      description: 'El libro ha sido eliminado de tu lista.'
+      title: '🗑️ Libro eliminado',
+      description: book ? `"${book.title}" ha sido eliminado de tu lista.` : 'El libro ha sido eliminado de tu lista.'
     });
   };
 
@@ -589,6 +635,113 @@ export default function Profile() {
                   </Tooltip>
                 </TooltipProvider>
               </motion.div>
+
+              {/* Loading Animation while fetching recommendations */}
+              {isRevealing && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="mt-10 flex flex-col items-center justify-center"
+                >
+                  {/* Animated Book Stack */}
+                  <div className="relative w-32 h-32 mb-8">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ scale: 0.8, opacity: 0, rotateY: 0 }}
+                        animate={{
+                          scale: [0.8, 1, 0.8],
+                          opacity: [0.3, 1, 0.3],
+                          rotateY: [0, 180, 360],
+                        }}
+                        transition={{
+                          duration: 2.5,
+                          delay: i * 0.3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <div 
+                          className={`w-16 h-20 rounded-lg shadow-lg ${
+                            i === 0 ? 'bg-gradient-to-br from-amber-400 to-orange-500' :
+                            i === 1 ? 'bg-gradient-to-br from-rose-400 to-pink-500' :
+                            'bg-gradient-to-br from-blue-400 to-indigo-500'
+                          }`}
+                          style={{
+                            transformStyle: 'preserve-3d',
+                          }}
+                        >
+                          <div className="absolute inset-2 border-2 border-white/30 rounded" />
+                          <div className="absolute top-3 left-3 right-3 h-1 bg-white/40 rounded" />
+                          <div className="absolute top-6 left-3 right-5 h-1 bg-white/30 rounded" />
+                          <div className="absolute top-9 left-3 right-4 h-1 bg-white/20 rounded" />
+                        </div>
+                      </motion.div>
+                    ))}
+                    
+                    {/* Central sparkle */}
+                    <motion.div
+                      className="absolute inset-0 flex items-center justify-center"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.5, 1, 0.5],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Sparkles className="w-8 h-8 text-amber-500" />
+                    </motion.div>
+                  </div>
+
+                  {/* Loading Text with Typing Effect */}
+                  <div className="text-center space-y-3">
+                    <motion.h3
+                      className="text-lg font-semibold text-foreground"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      Buscando libros perfectos para ti
+                    </motion.h3>
+                    
+                    {/* Animated dots */}
+                    <div className="flex items-center justify-center gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <motion.span
+                          key={i}
+                          className="w-2 h-2 bg-amber-500 rounded-full"
+                          animate={{
+                            scale: [1, 1.5, 1],
+                            opacity: [0.3, 1, 0.3],
+                          }}
+                          transition={{
+                            duration: 0.8,
+                            delay: i * 0.15,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Loading steps */}
+                    <motion.div
+                      className="text-sm text-muted-foreground space-y-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <LoadingStep delay={0} text="Analizando tus preferencias..." />
+                      <LoadingStep delay={1.5} text="Consultando recomendaciones de IA..." />
+                      <LoadingStep delay={3} text="Seleccionando las mejores opciones..." />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Display revealed books as 3 cards */}
               {books.length > 0 && !isRevealing && (
@@ -1269,6 +1422,38 @@ export default function Profile() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Rating Dialog */}
+      <RatingDialog
+        isOpen={showRatingDialog}
+        onClose={() => {
+          setShowRatingDialog(false);
+          setRatingBook(null);
+        }}
+        bookTitle={ratingBook?.title || ''}
+        onSubmit={async (rating, feedback) => {
+          if (!user || !ratingBook) return;
+          
+          try {
+            await supabase
+              .from('recommendation_ratings')
+              .insert({
+                user_id: user.id,
+                book_id: ratingBook.id,
+                book_title: ratingBook.title,
+                rating,
+                feedback
+              });
+            
+            toast({
+              title: '✅ ¡Gracias por tu feedback!',
+              description: 'Nos ayuda a mejorar las recomendaciones'
+            });
+          } catch (error) {
+            console.error('Error saving rating:', error);
+          }
+        }}
+      />
     </div>
   );
 }

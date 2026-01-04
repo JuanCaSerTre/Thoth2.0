@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform, PanInfo, useAnimation } from 'framer-motion';
-import { Heart, X, Sparkles } from 'lucide-react';
+import { Heart, X, Sparkles, Share2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { useState, useCallback } from 'react';
@@ -15,6 +15,7 @@ export interface SwipeableBook {
   amazonLink?: string;
   aiReasoning?: string;
   aiFocusArea?: string;
+  emotionalHook?: string;
   compatibilityScore?: number;
 }
 
@@ -65,6 +66,41 @@ export default function SwipeableBookCard({ book, onLike, onDislike, index }: Sw
       x: -400,
       opacity: 0,
       transition: { duration: 0.25, ease: "easeOut" }
+    });
+    onDislike(book);
+  }, [book, onDislike, controls, isExiting]);
+
+  const handleLike = useCallback(async () => {
+    if (isExiting) return;
+    setIsExiting(true);
+    await controls.start({
+      x: 400,
+      opacity: 0,
+      transition: { duration: 0.25, ease: "easeOut" }
+    });
+    onLike(book);
+  }, [book, onLike, controls, isExiting]);
+
+  const handleShare = async () => {
+    const shareText = `📚 THOTH me recomendó: "${book.title}" por ${book.author}\n\n${book.emotionalHook || book.aiReasoning || 'Descubre tu próximo libro'}\n\n🔮 Encuentra tus próximas lecturas en:`;
+    const shareUrl = 'https://1293daa6-403b-4b93-94be-eebe111b8951.canvases.tempo.build';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `THOTH recomienda: ${book.title}`,
+          text: shareText,
+          url: shareUrl
+        });
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    } else {
+      const fullText = `${shareText} ${shareUrl}`;
+      await navigator.clipboard.writeText(fullText);
+      alert('✓ Link copiado! Pégalo en tus stories/posts');
+    }
+  };
     });
     onDislike(book);
   }, [book, onDislike, controls, isExiting]);
@@ -165,6 +201,18 @@ export default function SwipeableBookCard({ book, onLike, onDislike, index }: Sw
             {book.description}
           </p>
 
+          {/* THOTH's Emotional Hook */}
+          {book.emotionalHook && (
+            <div className="bg-gradient-to-br from-purple-50/90 to-indigo-50/90 dark:from-purple-950/50 dark:to-indigo-950/50 rounded-xl p-3 border border-purple-200/40 dark:border-purple-800/30">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600 mt-0.5" />
+                <p className="text-xs italic text-purple-900 dark:text-purple-200 leading-relaxed">
+                  "{book.emotionalHook}"
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* AI Reasoning */}
           {book.aiReasoning && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
@@ -199,6 +247,18 @@ export default function SwipeableBookCard({ book, onLike, onDislike, index }: Sw
 
         {/* Action Buttons */}
         <div className="p-4 bg-muted/50 border-t border-border">
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              disabled={isExiting}
+              className="flex-1 rounded-full border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all"
+            >
+              <Share2 className="w-4 h-4 mr-1.5 text-purple-600" />
+              <span className="text-purple-600 font-medium text-sm">Compartir</span>
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
