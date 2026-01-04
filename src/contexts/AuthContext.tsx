@@ -222,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadUserData = async (userId: string): Promise<User | null> => {
+    console.log('[AuthContext] Loading user data for:', userId);
     try {
       // Execute all queries in parallel for faster loading
       const [
@@ -241,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('user_id', userId)
             .single(),
           new Promise<{ data: null, error: Error }>((resolve) => 
-            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 2000)
+            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 5000)
           )
         ]),
         // Book history
@@ -291,7 +292,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const dislikedBooks = dislikedBooksResult.data as DislikedBooksRow[] | null;
       const authUser = authUserResult.data?.user;
 
-
+      console.log('[AuthContext] User data loaded:', {
+        hasPreferences: !!preferences,
+        historyCount: history?.length || 0,
+        authUser: !!authUser
+      });
 
       if (authUser) {
         const newUser: User = {
@@ -370,17 +375,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         setIsLoading(false);
+        console.log('[AuthContext] User set successfully');
         return newUser;
       }
+      console.log('[AuthContext] No auth user found');
       setIsLoading(false);
       return null;
-    } catch {
+    } catch (error) {
+      console.error('[AuthContext] Error loading user data:', error);
       setIsLoading(false);
       return null;
     }
   };
 
   const login = async (email: string, password: string): Promise<User> => {
+    console.log('[AuthContext] Login attempt for:', email);
     
     // Set the ref BEFORE signing in to prevent auth state listener from duplicating work
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -389,16 +398,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
-      console.error('Login error:', error);
+      console.error('[AuthContext] Login error:', error);
       throw new Error(error.message === 'Invalid login credentials' 
         ? 'Email o contraseña incorrectos. Verifica tus credenciales.' 
         : error.message);
     }
     
     if (!data.user) {
-      console.error('No user data returned');
+      console.error('[AuthContext] No user data returned');
       throw new Error('Login failed');
     }
+
+    console.log('[AuthContext] Login successful, user:', data.user.email);
 
     // Check if email is confirmed
     if (!data.user.email_confirmed_at && data.user.identities && data.user.identities.length === 0) {
@@ -409,11 +420,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadingUserIdRef.current = data.user.id;
     
     try {
+      console.log('[AuthContext] Loading user data after login...');
       const loadedUser = await loadUserData(data.user.id);
       if (!loadedUser) {
+        console.error('[AuthContext] Failed to load user data');
         throw new Error('Failed to load user data');
       }
+      console.log('[AuthContext] User data loaded successfully');
       return loadedUser;
+    } catch (error) {
+      console.error('[AuthContext] Error in login flow:', error);
+      throw error;
     } finally {
       // Always clear the ref after login attempt
       loadingUserIdRef.current = null;
