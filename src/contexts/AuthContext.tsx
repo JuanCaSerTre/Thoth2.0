@@ -135,14 +135,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     
-    // Failsafe timeout - if loading takes more than 10 seconds, stop loading
+    // Failsafe timeout - if loading takes more than 20 seconds, stop loading
     const failsafeTimeout = setTimeout(() => {
       if (isMounted && isLoading) {
         console.warn('Auth loading timeout - forcing complete');
         setIsLoading(false);
         setIsInitialized(true);
+        loadingUserIdRef.current = null;
       }
-    }, 10000);
+    }, 20000);
     
     // Check for existing session on mount
     const initializeAuth = async () => {
@@ -193,9 +194,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Handle email confirmation and sign in events
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && isMounted) {
-        // Skip if we're already loading this user's data
+        // Skip if we're already loading this user's data (login function is handling it)
         if (loadingUserIdRef.current === session.user.id) {
           console.log('Skipping duplicate loadUserData for:', session.user.id);
+          return;
+        }
+        
+        // Skip if user is already loaded
+        if (user && user.id === session.user.id) {
+          console.log('User already loaded, skipping:', session.user.id);
+          setIsLoading(false);
           return;
         }
         
@@ -204,8 +212,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 2. Auto-login after registration (when confirmation not required)
         loadingUserIdRef.current = session.user.id;
         setIsLoading(true);
-        await loadUserData(session.user.id);
-        loadingUserIdRef.current = null;
+        try {
+          await loadUserData(session.user.id);
+        } finally {
+          loadingUserIdRef.current = null;
+        }
       }
     });
 
@@ -230,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Preferences query timeout')), 60000)
+        setTimeout(() => reject(new Error('Preferences query timeout')), 15000)
       );
       
       let preferences: UserPreferencesRow | null = null;
@@ -379,6 +390,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<User> => {
     console.log('Attempting login for:', email);
     
+    // Set the ref BEFORE signing in to prevent auth state listener from duplicating work
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -395,11 +407,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (!data.user) throw new Error('Login failed');
 
-    const loadedUser = await loadUserData(data.user.id);
-    if (!loadedUser) {
-      throw new Error('Failed to load user data');
+    // Set ref to prevent auth listener from loading user data again
+    loadingUserIdRef.current = data.user.id;
+    
+    try {
+      const loadedUser = await loadUserData(data.user.id);
+      if (!loadedUser) {
+        throw new Error('Failed to load user data');
+      }
+      return loadedUser;
+    } finally {
+      // Always clear the ref after login attempt
+      loadingUserIdRef.current = null;
     }
-    return loadedUser;
   };
 
   const register = async (email: string, password: string, preferences: User['preferences']) => {

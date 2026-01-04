@@ -883,6 +883,7 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
                 if (topBook.title) seenTitles.add(topBook.title);
                 
                 const mappedBook = mapToBook(topBook);
+                if (!mappedBook) continue; // Skip if mapping failed
                 mappedBook.aiReasoning = search.reasoning;
                 mappedBook.aiFocusArea = search.focusArea;
                 mappedBook.emotionalHook = search.emotionalHook;
