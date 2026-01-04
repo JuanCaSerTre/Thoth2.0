@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Link, Navigate } from 'react-router-dom';
 
 export default function Home() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isInitialized } = useAuth();
   const { t, language } = useLocalization();
 
-  // Wait for auth to load before checking onboarding status
-  if (isLoading) {
+  // Wait for auth to fully initialize before checking onboarding status
+  if (isLoading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

@@ -109,6 +109,7 @@ interface DislikedBook {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isInitialized: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, preferences: User['preferences']) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: () => void;
@@ -826,6 +827,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{ 
       user, 
       isLoading,
+      isInitialized,
       login, 
       register, 
       logout, 
