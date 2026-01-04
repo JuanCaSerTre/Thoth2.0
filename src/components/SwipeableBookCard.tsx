@@ -101,20 +101,6 @@ export default function SwipeableBookCard({ book, onLike, onDislike, index }: Sw
       alert('✓ Link copiado! Pégalo en tus stories/posts');
     }
   };
-    });
-    onDislike(book);
-  }, [book, onDislike, controls, isExiting]);
-
-  const handleLike = useCallback(async () => {
-    if (isExiting) return;
-    setIsExiting(true);
-    await controls.start({
-      x: 400,
-      opacity: 0,
-      transition: { duration: 0.25, ease: "easeOut" }
-    });
-    onLike(book);
-  }, [book, onLike, controls, isExiting]);
 
   return (
     <motion.div
