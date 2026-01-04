@@ -20,5 +20,9 @@ export default defineConfig({
   server: {
     // @ts-ignore
     allowedHosts: true,
-  }
+    historyApiFallback: true,
+  },
+  preview: {
+    historyApiFallback: true,
+  },
 });

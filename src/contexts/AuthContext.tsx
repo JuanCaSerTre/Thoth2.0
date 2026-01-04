@@ -110,7 +110,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string, preferences: User['preferences']) => Promise<void>;
+  register: (email: string, password: string, preferences: User['preferences']) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: () => void;
   updatePreferences: (preferences: Partial<User['preferences']>) => void;
   addToHistory: (book: Book) => void;
@@ -135,25 +135,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     
-    // Failsafe timeout - if loading takes more than 10 seconds, stop loading
+    // Failsafe timeout - if loading takes more than 3 seconds, stop loading
     const failsafeTimeout = setTimeout(() => {
       if (isMounted && isLoading) {
-        console.warn('Auth loading timeout - forcing complete');
         setIsLoading(false);
         setIsInitialized(true);
         loadingUserIdRef.current = null;
       }
-    }, 10000);
+    }, 3000);
     
     // Check for existing session on mount
     const initializeAuth = async () => {
-      console.log('Initializing auth...');
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Got session:', session?.user?.id, 'Error:', error);
         
         if (error) {
-          console.error('Session error:', error);
           if (isMounted) {
             setIsLoading(false);
             setIsInitialized(true);
@@ -168,8 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (isMounted) {
           setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
+      } catch {
         if (isMounted) {
           setIsLoading(false);
           loadingUserIdRef.current = null;
@@ -184,8 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id);
-      
       if (event === 'SIGNED_OUT' && isMounted) {
         setUser(null);
         setIsLoading(false);
@@ -196,13 +189,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user && isMounted) {
         // Skip if we're already loading this user's data (login function is handling it)
         if (loadingUserIdRef.current === session.user.id) {
-          console.log('Skipping duplicate loadUserData for:', session.user.id);
           return;
         }
         
         // Skip if user is already loaded
         if (user && user.id === session.user.id) {
-          console.log('User already loaded, skipping:', session.user.id);
           setIsLoading(false);
           return;
         }
@@ -231,7 +222,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loadUserData = async (userId: string): Promise<User | null> => {
-    console.log('Loading user data for:', userId);
     try {
       // Execute all queries in parallel for faster loading
       const [
@@ -251,7 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .eq('user_id', userId)
             .single(),
           new Promise<{ data: null, error: Error }>((resolve) => 
-            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 8000)
+            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 2000)
           )
         ]),
         // Book history
@@ -301,8 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const dislikedBooks = dislikedBooksResult.data as DislikedBooksRow[] | null;
       const authUser = authUserResult.data?.user;
 
-      console.log('Loaded preferences from DB:', preferences);
-      console.log('onboarding_completed value:', preferences?.onboarding_completed);
+
 
       if (authUser) {
         const newUser: User = {
@@ -385,15 +374,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setIsLoading(false);
       return null;
-    } catch (error) {
-      console.error('Error loading user data:', error);
+    } catch {
       setIsLoading(false);
       return null;
     }
   };
 
   const login = async (email: string, password: string): Promise<User> => {
-    console.log('Attempting login for:', email);
     
     // Set the ref BEFORE signing in to prevent auth state listener from duplicating work
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -401,10 +388,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password
     });
 
-    console.log('Login response:', { data, error });
-
     if (error) {
-      console.error('Login error:', error.message);
       throw new Error(error.message === 'Invalid login credentials' 
         ? 'Email o contraseña incorrectos. Verifica tus credenciales.' 
         : error.message);
@@ -427,8 +411,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, preferences: User['preferences']) => {
-    console.log('Attempting registration for:', email);
+  const register = async (email: string, password: string, preferences: User['preferences']): Promise<{ requiresEmailConfirmation: boolean }> => {
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -438,10 +421,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    console.log('Registration response:', { data, error });
-
     if (error) {
-      console.error('Registration error:', error.message);
       throw new Error(error.message);
     }
     
@@ -460,17 +440,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       reading_duration: preferences.readingDuration || 'medium'
     } as Database['public']['Tables']['user_preferences']['Insert']);
 
-    if (prefError) {
-      console.error('Preferences save error:', prefError);
-    }
+
 
     // If session exists (email confirmation not required), load user data
     // If session is null, user needs to confirm email first
     if (data.session) {
       await loadUserData(data.user.id);
+      return { requiresEmailConfirmation: false };
     }
-    // Note: If email confirmation is required, the user will be loaded 
-    // when they click the confirmation link via onAuthStateChange
+    
+    // No session means email confirmation is required
+    return { requiresEmailConfirmation: true };
   };
 
   const logout = async () => {
@@ -503,16 +483,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         onConflict: 'user_id'
       });
     
-    if (error) {
-      console.error('Error saving preferences:', error);
-    } else {
-      console.log('Preferences saved successfully to database:', mergedPreferences);
-    }
+
     
     const updatedUser = { ...user, preferences: mergedPreferences };
     setUser(updatedUser);
     
-    console.log('Preferences updated:', mergedPreferences);
   };
 
   const addToHistory = async (book: Book) => {
@@ -558,16 +533,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('❌ Error saving to library:', error);
         throw error;
       }
 
       const updatedLibrary = [book, ...currentLibrary];
       const updatedUser = { ...user, library: updatedLibrary };
       setUser(updatedUser);
-      console.log('✅ Book added to library:', book.title);
     } catch (error) {
-      console.error('❌ Exception adding to library:', error);
       throw error;
     }
   };
@@ -617,8 +589,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentToRead = user.toRead || [];
     const exists = currentToRead.find(b => b.id === book.id);
     if (exists) {
-      console.log('📖 Book already in ToRead list, skipping:', book.title);
-      return; // Changed from throwing error to just returning
+      return;
     }
 
     try {
@@ -632,7 +603,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('❌ Error saving to to_read:', error);
         return;
       }
 
@@ -640,9 +610,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, toRead: updatedToRead };
       setUser(updatedUser);
       
-      console.log('✅ Book added to ToRead:', book.title, 'ID:', book.id, 'ISBN:', book.isbn);
-    } catch (err) {
-      console.error('❌ Exception saving to to_read:', err);
+    } catch {
     }
   };
 
@@ -672,7 +640,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedUser = { ...user, toRead: updatedToRead, likedBooks: updatedLiked };
     setUser(updatedUser);
     
-    console.log('🗑️ Book removed from ToRead AND LikedBooks:', bookId);
   };
 
   const moveToReadFromToRead = async (bookId: string) => {
@@ -722,7 +689,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLiked = user.likedBooks || [];
     const exists = currentLiked.find(b => b.id === book.id);
     if (exists) {
-      console.log('📚 Book already in liked list, skipping:', book.title);
       return;
     }
 
@@ -737,7 +703,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('❌ Error saving to liked_books:', error);
         return;
       }
 
@@ -745,9 +710,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, likedBooks: updatedLiked };
       setUser(updatedUser);
 
-      console.log('✅ Book LIKED - AI will learn from this!', book.title, 'ID:', book.id, 'ISBN:', book.isbn);
-    } catch (err) {
-      console.error('❌ Exception saving to liked_books:', err);
+    } catch {
     }
   };
 
@@ -768,7 +731,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('❌ Error saving to disliked_books:', error);
         return;
       }
 
@@ -776,9 +738,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedUser = { ...user, dislikedBooks: updatedDisliked };
       setUser(updatedUser);
 
-      console.log('👎 Book DISLIKED - AI will avoid similar books!', book.title);
-    } catch (err) {
-      console.error('❌ Exception saving to disliked_books:', err);
+    } catch {
     }
   };
 

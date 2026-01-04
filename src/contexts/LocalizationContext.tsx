@@ -34,29 +34,25 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
 
   // Detect country on mount
   useEffect(() => {
+    // First, synchronously check localStorage for instant rendering
+    const savedLang = localStorage.getItem('userLanguage');
+    const manuallySet = localStorage.getItem('languageManuallySet');
+    if (savedLang && manuallySet === 'true') {
+      setLanguageState(savedLang);
+    }
+    
     const initLocalization = async () => {
       try {
         const detectedCountry = await detectUserCountry();
         setCountryState(detectedCountry);
-        console.log('Detected country:', detectedCountry);
         
-        // Check if user manually set language (different from auto-detected)
-        const savedLang = localStorage.getItem('userLanguage');
-        const manuallySet = localStorage.getItem('languageManuallySet');
-        
-        if (savedLang && manuallySet === 'true') {
-          // User manually changed language, keep their preference
-          setLanguageState(savedLang);
-          console.log('Using manually set language:', savedLang);
-        } else {
+        if (!(savedLang && manuallySet === 'true')) {
           // Auto-detect language from country
           const countryLang = getLanguageFromCountry(detectedCountry);
           setLanguageState(countryLang);
           localStorage.setItem('userLanguage', countryLang);
-          console.log('Auto-detected language from country:', countryLang);
         }
-      } catch (error) {
-        console.error('Error detecting localization:', error);
+      } catch {
         // Fallback to browser language
         const browserLang = detectUserLanguage();
         setLanguageState(browserLang);

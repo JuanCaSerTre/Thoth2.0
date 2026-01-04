@@ -188,7 +188,6 @@ export async function generateAIRecommendations(
   userProfile: UserProfile
 ): Promise<AIRecommendation[]> {
   if (!API_KEY || !openai) {
-    console.warn('OpenAI API key not configured');
     return [];
   }
 

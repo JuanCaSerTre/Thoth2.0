@@ -176,19 +176,31 @@ export default function Register() {
 
     try {
       console.log('Attempting registration with email:', email);
-      await register(email, password, {
+      const result = await register(email, password, {
         genres: [],
         language: language,
         onboardingCompleted: false
       });
-      console.log('Registration successful');
-      toast({
-        title: c.accountCreated,
-        description: c.accountCreatedDesc
-      });
-      // Navigate to onboarding - if email confirmation is needed,
-      // the user will be redirected to login from there
-      navigate('/onboarding');
+      console.log('Registration successful, result:', result);
+      
+      // Check if email confirmation is required (no session returned)
+      if (result?.requiresEmailConfirmation) {
+        toast({
+          title: c.accountCreated,
+          description: language === 'es' 
+            ? 'Por favor revisa tu correo para confirmar tu cuenta antes de continuar.' 
+            : 'Please check your email to confirm your account before continuing.'
+        });
+        // Stay on register page or redirect to login
+        navigate('/login');
+      } else {
+        toast({
+          title: c.accountCreated,
+          description: c.accountCreatedDesc
+        });
+        // Navigate to onboarding only if session exists
+        navigate('/onboarding');
+      }
     } catch (error) {
       console.error('Registration error in component:', error);
       toast({
