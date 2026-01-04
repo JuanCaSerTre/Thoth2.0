@@ -258,9 +258,9 @@ export default function Onboarding() {
       navigate('/login', { replace: true });
       return;
     }
-    // If already completed onboarding, redirect to profile
+    // If already completed onboarding, redirect to home
     if (user.preferences?.onboardingCompleted) {
-      navigate('/profile', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [user, navigate, isLoading]);
 

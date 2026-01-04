@@ -322,14 +322,21 @@ const scoreBook = (book: any, preferences?: UserPreferences, likedBooks?: any[],
 // Map book data to RecommendedBook interface
 const mapToBook = (book: any): RecommendedBook | null => {
   const volumeInfo = book.volumeInfo;
-  const isbn = volumeInfo.industryIdentifiers?.find((id: any) => 
+  
+  // Try to get ISBN from industry identifiers
+  let isbn = volumeInfo.industryIdentifiers?.find((id: any) => 
     id.type === 'ISBN_13' || id.type === 'ISBN_10'
   )?.identifier;
-
-  // Only return books with valid ISBN for Amazon links
-  if (!isbn || !/^(\d{10}|\d{13})$/.test(isbn.replace(/[-\s]/g, ''))) {
-    console.log(`Skipping book without valid ISBN: "${volumeInfo.title}"`);
-    return null;
+  
+  // Fallback: try any identifier type (some books have OTHER type)
+  if (!isbn && volumeInfo.industryIdentifiers?.length > 0) {
+    isbn = volumeInfo.industryIdentifiers[0].identifier;
+  }
+  
+  // Fallback: use Google Books ID as unique identifier for Amazon search
+  if (!isbn) {
+    isbn = book.id;
+    console.log(`Using Google Books ID as fallback for "${volumeInfo.title}": ${isbn}`);
   }
 
   return {
@@ -699,13 +706,13 @@ export async function getPersonalizedRecommendations(user: any): Promise<Recomme
           
           mappedBook.compatibilityScore = Math.min(99, compatibilityScore);
           
-          // Add books with 70% or higher compatibility
-          if (mappedBook.compatibilityScore >= 70) {
+          // Add books with 50% or higher compatibility (lowered threshold to ensure recommendations)
+          if (mappedBook.compatibilityScore >= 50) {
             allBooks.push(mappedBook);
             console.log(`✓ Added book: "${mappedBook.title}" by ${mappedBook.author} (Score: ${topBook.score}, Compatibility: ${mappedBook.compatibilityScore}%, ISBN: ${mappedBook.isbn})`);
             break; // Only take one book per AI recommendation
           } else {
-            console.log(`✗ Skipped book (below 70%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
+            console.log(`✗ Skipped book (below 50%): "${mappedBook.title}" (${mappedBook.compatibilityScore}%)`);
           }
           }
         }

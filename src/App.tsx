@@ -12,6 +12,7 @@ const Register = lazy(() => import("@/components/Register"));
 const About = lazy(() => import("@/components/About"));
 const Profile = lazy(() => import("@/components/Profile"));
 const Onboarding = lazy(() => import("@/components/Onboarding"));
+const AuthCallback = lazy(() => import("@/components/AuthCallback"));
 
 // Minimal loading fallback
 const LoadingFallback = () => (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/about" element={<About />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
         </Suspense>
         <Toaster />
