@@ -313,7 +313,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             readingGoals: preferences.reading_goals || [],
             readerType: preferences.reader_type || undefined,
             storyVibes: preferences.story_vibes || [],
-            psychologicalProfile: preferences.psychological_profile || {},
+            psychologicalProfile: (typeof preferences.psychological_profile === 'object' && preferences.psychological_profile !== null && !Array.isArray(preferences.psychological_profile)) 
+              ? preferences.psychological_profile as Record<string, string>
+              : {},
             favoriteBooks: preferences.favorite_books || undefined
           } : {
             genres: [],
