@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     
-    // Failsafe timeout - if loading takes more than 20 seconds, stop loading
+    // Failsafe timeout - if loading takes more than 10 seconds, stop loading
     const failsafeTimeout = setTimeout(() => {
       if (isMounted && isLoading) {
         console.warn('Auth loading timeout - forcing complete');
@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsInitialized(true);
         loadingUserIdRef.current = null;
       }
-    }, 20000);
+    }, 10000);
     
     // Check for existing session on mount
     const initializeAuth = async () => {
@@ -233,73 +233,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadUserData = async (userId: string): Promise<User | null> => {
     console.log('Loading user data for:', userId);
     try {
-      // Get user preferences with timeout
-      const preferencesPromise = supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Preferences query timeout')), 15000)
-      );
-      
-      let preferences: UserPreferencesRow | null = null;
-      let prefError: any = null;
-      
-      try {
-        const result = await Promise.race([
-          preferencesPromise,
-          timeoutPromise
-        ]) as { data: UserPreferencesRow | null, error: any };
-        preferences = result.data;
-        prefError = result.error;
-      } catch (timeoutErr) {
-        console.warn('Preferences query timed out, continuing without preferences');
-        prefError = timeoutErr;
-      }
+      // Execute all queries in parallel for faster loading
+      const [
+        preferencesResult,
+        historyResult,
+        libraryResult,
+        toReadResult,
+        likedBooksResult,
+        dislikedBooksResult,
+        authUserResult
+      ] = await Promise.all([
+        // Preferences with timeout
+        Promise.race([
+          supabase
+            .from('user_preferences')
+            .select('*')
+            .eq('user_id', userId)
+            .single(),
+          new Promise<{ data: null, error: Error }>((resolve) => 
+            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 8000)
+          )
+        ]),
+        // Book history
+        supabase
+          .from('book_history')
+          .select('*')
+          .eq('user_id', userId)
+          .order('revealed_at', { ascending: false })
+          .limit(50),
+        // Library
+        supabase
+          .from('library')
+          .select('*')
+          .eq('user_id', userId)
+          .order('added_at', { ascending: false })
+          .limit(100),
+        // To read
+        supabase
+          .from('to_read')
+          .select('*')
+          .eq('user_id', userId)
+          .order('added_at', { ascending: false })
+          .limit(50),
+        // Liked books
+        supabase
+          .from('liked_books')
+          .select('*')
+          .eq('user_id', userId)
+          .order('liked_at', { ascending: false })
+          .limit(50),
+        // Disliked books
+        supabase
+          .from('disliked_books')
+          .select('*')
+          .eq('user_id', userId)
+          .order('disliked_at', { ascending: false })
+          .limit(50),
+        // Auth user
+        supabase.auth.getUser()
+      ]);
+
+      const preferences = preferencesResult.data as UserPreferencesRow | null;
+      const history = historyResult.data as BookHistoryRow[] | null;
+      const library = libraryResult.data as LibraryRow[] | null;
+      const toRead = toReadResult.data as ToReadRow[] | null;
+      const likedBooks = likedBooksResult.data as LikedBooksRow[] | null;
+      const dislikedBooks = dislikedBooksResult.data as DislikedBooksRow[] | null;
+      const authUser = authUserResult.data?.user;
 
       console.log('Loaded preferences from DB:', preferences);
-      console.log('Preferences error:', prefError);
       console.log('onboarding_completed value:', preferences?.onboarding_completed);
-
-      // Get book history
-      const { data: history } = await supabase
-        .from('book_history')
-        .select('*')
-        .eq('user_id', userId)
-        .order('revealed_at', { ascending: false }) as { data: BookHistoryRow[] | null };
-
-      // Get library
-      const { data: library } = await supabase
-        .from('library')
-        .select('*')
-        .eq('user_id', userId)
-        .order('added_at', { ascending: false }) as { data: LibraryRow[] | null };
-
-      // Get to_read
-      const { data: toRead } = await supabase
-        .from('to_read')
-        .select('*')
-        .eq('user_id', userId)
-        .order('added_at', { ascending: false }) as { data: ToReadRow[] | null };
-
-      // Get liked_books
-      const { data: likedBooks } = await supabase
-        .from('liked_books')
-        .select('*')
-        .eq('user_id', userId)
-        .order('liked_at', { ascending: false }) as { data: LikedBooksRow[] | null };
-
-      // Get disliked_books
-      const { data: dislikedBooks } = await supabase
-        .from('disliked_books')
-        .select('*')
-        .eq('user_id', userId)
-        .order('disliked_at', { ascending: false }) as { data: DislikedBooksRow[] | null };
-
-      // Get user profile
-      const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (authUser) {
         const newUser: User = {
