@@ -223,6 +223,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUserData = async (userId: string): Promise<User | null> => {
     console.log('[AuthContext] Loading user data for:', userId);
+    
+    const queryTimeout = 8000; // 8 second timeout for each query
+    
+    const withTimeout = <T,>(promise: Promise<T>, name: string): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+          setTimeout(() => reject(new Error(`${name} query timeout`)), queryTimeout)
+        )
+      ]);
+    };
+    
     try {
       // Execute all queries in parallel for faster loading
       const [
@@ -235,53 +247,90 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authUserResult
       ] = await Promise.all([
         // Preferences with timeout
-        Promise.race([
+        withTimeout(
           supabase
             .from('user_preferences')
             .select('*')
             .eq('user_id', userId)
             .single(),
-          new Promise<{ data: null, error: Error }>((resolve) => 
-            setTimeout(() => resolve({ data: null, error: new Error('Preferences query timeout') }), 5000)
-          )
-        ]),
+          'Preferences'
+        ).catch(err => {
+          console.warn('[AuthContext] Preferences query failed:', err);
+          return { data: null, error: err };
+        }),
         // Book history
-        supabase
-          .from('book_history')
-          .select('*')
-          .eq('user_id', userId)
-          .order('revealed_at', { ascending: false })
-          .limit(50),
+        withTimeout(
+          supabase
+            .from('book_history')
+            .select('*')
+            .eq('user_id', userId)
+            .order('revealed_at', { ascending: false })
+            .limit(50),
+          'History'
+        ).catch(err => {
+          console.warn('[AuthContext] History query failed:', err);
+          return { data: [], error: err };
+        }),
         // Library
-        supabase
-          .from('library')
-          .select('*')
-          .eq('user_id', userId)
-          .order('added_at', { ascending: false })
-          .limit(100),
+        withTimeout(
+          supabase
+            .from('library')
+            .select('*')
+            .eq('user_id', userId)
+            .order('added_at', { ascending: false })
+            .limit(100),
+          'Library'
+        ).catch(err => {
+          console.warn('[AuthContext] Library query failed:', err);
+          return { data: [], error: err };
+        }),
         // To read
-        supabase
-          .from('to_read')
-          .select('*')
-          .eq('user_id', userId)
-          .order('added_at', { ascending: false })
-          .limit(50),
+        withTimeout(
+          supabase
+            .from('to_read')
+            .select('*')
+            .eq('user_id', userId)
+            .order('added_at', { ascending: false })
+            .limit(50),
+          'ToRead'
+        ).catch(err => {
+          console.warn('[AuthContext] ToRead query failed:', err);
+          return { data: [], error: err };
+        }),
         // Liked books
-        supabase
-          .from('liked_books')
-          .select('*')
-          .eq('user_id', userId)
-          .order('liked_at', { ascending: false })
-          .limit(50),
+        withTimeout(
+          supabase
+            .from('liked_books')
+            .select('*')
+            .eq('user_id', userId)
+            .order('liked_at', { ascending: false })
+            .limit(50),
+          'LikedBooks'
+        ).catch(err => {
+          console.warn('[AuthContext] LikedBooks query failed:', err);
+          return { data: [], error: err };
+        }),
         // Disliked books
-        supabase
-          .from('disliked_books')
-          .select('*')
-          .eq('user_id', userId)
-          .order('disliked_at', { ascending: false })
-          .limit(50),
+        withTimeout(
+          supabase
+            .from('disliked_books')
+            .select('*')
+            .eq('user_id', userId)
+            .order('disliked_at', { ascending: false })
+            .limit(50),
+          'DislikedBooks'
+        ).catch(err => {
+          console.warn('[AuthContext] DislikedBooks query failed:', err);
+          return { data: [], error: err };
+        }),
         // Auth user
-        supabase.auth.getUser()
+        withTimeout(
+          supabase.auth.getUser(),
+          'AuthUser'
+        ).catch(err => {
+          console.warn('[AuthContext] AuthUser query failed:', err);
+          return { data: { user: null }, error: err };
+        })
       ]);
 
       const preferences = preferencesResult.data as UserPreferencesRow | null;
@@ -295,13 +344,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('[AuthContext] User data loaded:', {
         hasPreferences: !!preferences,
         historyCount: history?.length || 0,
-        authUser: !!authUser
+        authUser: !!authUser,
+        userId: userId
       });
 
-      if (authUser) {
+      // Use authUser if available, otherwise create minimal user with userId
+      const userEmail = authUser?.email || '';
+      const userIdToUse = authUser?.id || userId;
+      
+      if (userIdToUse) {
         const newUser: User = {
-          id: authUser.id,
-          email: authUser.email!,
+          id: userIdToUse,
+          email: userEmail,
           preferences: preferences ? {
             genres: preferences.genres || [],
             language: preferences.language || 'en',
