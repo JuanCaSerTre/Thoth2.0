@@ -389,12 +389,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      console.error('Login error:', error);
       throw new Error(error.message === 'Invalid login credentials' 
         ? 'Email o contraseña incorrectos. Verifica tus credenciales.' 
         : error.message);
     }
     
-    if (!data.user) throw new Error('Login failed');
+    if (!data.user) {
+      console.error('No user data returned');
+      throw new Error('Login failed');
+    }
+
+    // Check if email is confirmed
+    if (!data.user.email_confirmed_at && data.user.identities && data.user.identities.length === 0) {
+      throw new Error('Por favor confirma tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.');
+    }
 
     // Set ref to prevent auth listener from loading user data again
     loadingUserIdRef.current = data.user.id;
